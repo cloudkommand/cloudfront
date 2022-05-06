@@ -1,0 +1,120 @@
+{
+    "components": {
+        "cloudfront": {
+            "type": "ext",
+            "displayname": "CK Cloudfront distribution",
+            "description": "Creates Cloudfront distribution and other needed pieces for connecting to Route53 and an S3 bucket",
+            "cloud": "AWS",
+            "resources": [
+                "AWS::s3::bucket", 
+                "AWS::codebuild::project", 
+                "AWS::route53::recordset"
+            ],
+            "environment_variables": {
+            },
+            "download_folder": true,
+            "policy": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                    "Sid": "Vis",
+                    "Effect": "Allow",
+                    "Action": [
+                        "s3:*",
+                        "cloudfront:*",
+                        "acm:*",
+                        "route53:*", 
+                        "route53domains:*"
+                    ],
+                    "Resource": "*"
+                }]
+            },
+            "input": {
+                "type": "object",
+                "properties": {
+                    "codebuild_project_name": {
+                        "type": "string",
+                        "description": "The name of the codebuild project. If not present this name will be auto-generated."
+                    },
+                    "codebuild_runtime_versions": {
+                        "type": "object",
+                        "description": "The dictionary of runtime versions you need to build your app. If not set, this will default to {\"nodejs\": 10}. See a list of possible values here: https://docs.aws.amazon.com/codebuild/latest/userguide/runtime-versions.html"
+                    },
+                    "install_commands": {
+                        "type": "array",
+                        "description": "Commands installing required libraries/packages before a build is run.",
+                        "default": []
+                    },
+                    "build_container_size": {
+                        "type": "string",
+                        "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time.",
+                        "enum": ["small", "medium", "large", "2xlarge"],
+                        "default": "medium"
+                    },
+                    "index_document": {
+                        "type": "string",
+                        "description": "The path to the index document for the website",
+                        "default": "index.html"
+                    },
+                    "error_document": {
+                        "type": "string",
+                        "description": "The path that handles 4XX class errors. Can be the same as the index_document",
+                        "default": "index.html"
+                    },
+                    "s3_url_path": {
+                        "type": "string",
+                        "description": "A prefix to add in front of the s3 object"
+                    },
+                    "s3_tags": {
+                        "type": "object",
+                        "description": "Key-value pairs to attach as tags to the s3 bucket"
+                    },
+                    "domain": {
+                        "type": "string",
+                        "description": "The domain name for your website"
+                    },
+                    "base_domain": {
+                        "type": "string",
+                        "description": "Pass a base domain to get a unique domain through a generated subdomain"
+                    },
+                    "config": {
+                        "type": "object",
+                        "description": "Use this parameter to inject environment-variable like data into your react app. Passing this parameter writes a file into the provided path with the following function: export function get_config() {{return {json.dumps(data, indent=2)}}};",
+                        "properties": {
+                            "path": {
+                                "type": "string",
+                                "description": "The path to the config file to write"
+                            },
+                            "data": {
+                                "type": "object",
+                                "description": "Key value pairs to add to the function in the config file."
+                            }
+                        }
+                    }
+                }
+            },
+            "props": {
+                "codebuild_project_arn": {
+                    "type": "string",
+                    "description": "The ARN of the codebuild project"
+                },
+                "codebuild_project_name": {
+                    "type": "string",
+                    "description": "The name of the codebuild project"
+                },
+                "S3": {
+                    "type": "object",
+                    "description": "Props from the S3 component deployed"
+                },
+                "Route53": {
+                    "type": "object",
+                    "description": "Props from the route53 component deployed, if there is one"
+                }
+            }
+        }
+    },
+    "repos": {
+        "s3": "https://github.com/cloudkommand/s3",
+        "iam": "https://github.com/cloudkommand/iam",
+        "route53": "https://github.com/cloudkommand/route53"
+    }
+}
