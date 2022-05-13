@@ -1,6 +1,6 @@
 {
     "components": {
-        "cloudfront": {
+        "distribution": {
             "type": "ext",
             "displayname": "CK Cloudfront distribution",
             "description": "Creates Cloudfront distribution and other needed pieces for connecting to Route53 and an S3 bucket",
