@@ -34,8 +34,8 @@ def lambda_handler(event, context):
         if pass_back_data:
             pass
         elif event.get("op") == "upsert":
-            if prev_state.get("props").get("id"):
-                eh.add_op("get_oai", prev_state.get("props").get("id"))
+            if prev_state.get("props", {}).get("id"):
+                eh.add_op("get_oai", prev_state.get("props", {}).get("id"))
             else:
                 eh.add_op("create_oai")
 
@@ -62,6 +62,7 @@ def get_oai(region):
     
     try:
         cloudfront_data = cloudfront.get_cloud_front_origin_access_identity(Id=oai_id)
+        eh.add_log("Got Existing OAI, Exiting", cloudfront_data)
         
         eh.add_props({
             "id": oai_id,
@@ -92,6 +93,7 @@ def create_oai(caller_reference, comment, region):
                 "Comment": comment
             }
         )
+        eh.add_log("Created OAI", cloudfront_data)
 
         oai_id = cloudfront_data["CloudFrontOriginAccessIdentity"]["Id"]
 
