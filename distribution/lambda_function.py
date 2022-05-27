@@ -135,7 +135,10 @@ def lambda_handler(event, context):
             eh.add_op("get_acm_cert")
             if target_s3_bucket:
                 eh.add_op("get_s3_website_config")
-            eh.add_op("get_distribution")
+            if distribution_id:
+                eh.add_op("get_distribution")
+            else:
+                eh.add_op("create_distribution")
         elif event.get("op") == "delete":
             eh.add_op("delete_distribution", distribution_id)
 
