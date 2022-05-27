@@ -70,6 +70,11 @@ def lambda_handler(event, context):
             eh.add_state({"reference_id": random_id()})
         
         distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
+        if distribution_id:
+            eh.add_props({
+                "id": distribution_id, 
+                "location": prev_state.get("props", {}).get("location")
+            })
         aliases = cdef.get("aliases")
         if not aliases:
             eh.perm_error("No aliases defined for cloudfront distribution", 0)
@@ -362,7 +367,8 @@ def get_distribution(desired_config):
     distribution_id = eh.props.get("distribution_id")
 
     try:
-        distribution = cloudfront.get_distribution(Id=distribution_id)["Distribution"]
+        result = cloudfront.get_distribution(Id=distribution_id)
+        distribution = result["Distribution"]
         eh.add_log("Got Distribution", {"distribution": distribution})
         print(distribution)
         print(desired_config)
@@ -370,6 +376,11 @@ def get_distribution(desired_config):
         if distribution != desired_config:
             eh.add_op("update_distribution")
         else:
+            eh.add_props({
+                "id": distribution["Id"],
+                "arn": distribution["ARN"],
+                "etag": result.get("ETag")
+            })
             eh.add_log("No Update Necessary. Exiting", {"distribution": distribution})
 
     except ClientError as e:
@@ -400,6 +411,7 @@ def create_distribution(desired_config, tags):
         print(distribution)
         eh.add_props({
             "id": distribution["Distribution"]["Id"],
+            "arn": distribution["Distribution"]["ARN"],
             "location": distribution.get("Location"),
             "etag": distribution.get("ETag")
         })
@@ -419,6 +431,12 @@ def update_distribution(desired_config):
         )
 
         eh.add_log("Updated Distribution", {"distribution": distribution})
+        eh.add_props({
+            "id": distribution["Distribution"]["Id"],
+            "arn": distribution["Distribution"]["ARN"],
+            "location": distribution.get("Location") or eh.props.get("location"),
+            "etag": distribution.get("ETag")
+        })
     except ClientError as e:
         handle_common_errors(e, eh, "Update Distribution Failed", 12, CLOUDFRONT_ERRORS)
 
