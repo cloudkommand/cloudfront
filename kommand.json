@@ -52,7 +52,7 @@
                     },
                     "origin_path": {
                         "type": "string",
-                        "description": "The path that handles 4XX class errors. Can be the same as the index_document",
+                        "description": "The path that handles 4XX class errors. Can be the same as the index_document"
                     },
                     "origin_shield": {
                         "type": "boolean",
