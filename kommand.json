@@ -44,11 +44,11 @@
                     },
                     "target_ec2_instance": {
                         "type": "string",
-                        "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time.",
+                        "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time."
                     },
                     "target_load_balancer": {
                         "type": "string",
-                        "description": "The path to the index document for the website",
+                        "description": "The path to the index document for the website"
                     },
                     "origin_path": {
                         "type": "string",
