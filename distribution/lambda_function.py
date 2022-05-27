@@ -211,18 +211,18 @@ def lambda_handler(event, context):
             },
             'DefaultCacheBehavior': {
                 'TargetOriginId': f'{aliases[0]}',
-                'ForwardedValues': {
-                    "Cookies": {
-                        "Forward": "none"
-                    },
-                    "Headers": {
-                        "Quantity": 0
-                    },
-                    "QueryString": False,
-                    "QueryStringCacheKeys": {
-                        "Quantity": 0
-                    }
-                },
+                # 'ForwardedValues': {
+                #     "Cookies": {
+                #         "Forward": "none"
+                #     },
+                #     "Headers": {
+                #         "Quantity": 0
+                #     },
+                #     "QueryString": False,
+                #     "QueryStringCacheKeys": {
+                #         "Quantity": 0
+                #     }
+                # },
                 'TrustedKeyGroups': {
                     'Enabled': bool(key_group_ids),
                     'Quantity': len(key_group_ids),
