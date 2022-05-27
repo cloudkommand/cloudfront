@@ -60,12 +60,15 @@ def lambda_handler(event, context):
         repo_id = event.get("repo_id")
         cdef = event.get("component_def")
         cname = event.get("component_name")
-
         # Generate the identifier (if allowed) / name of the component here 
         
         # if there is no identifier beforehand, and you don't have config, just create
 
         # you pull in whatever arguments you care about
+        
+        if not eh.state.get("reference_id"):
+            eh.add_state({"reference_id": random_id()})
+        
         distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
         aliases = cdef.get("aliases")
         if not aliases:
