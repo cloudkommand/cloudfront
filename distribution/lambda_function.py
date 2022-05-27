@@ -77,7 +77,7 @@ def lambda_handler(event, context):
         target_s3_bucket = cdef.get("target_s3_bucket")
         target_ec2_instance = cdef.get("target_ec2_instance")
         target_load_balancer = cdef.get("target_load_balancer")
-        origin_path = cdef.get("origin_path") or "/"
+        origin_path = cdef.get("origin_path")
         custom_origin_headers = cdef.get("custom_origin_headers") or {}
         custom_headers = remove_none_attributes({
             "Quantity": len(custom_origin_headers.keys()), 
@@ -282,6 +282,7 @@ def lambda_handler(event, context):
             'HttpVersion': 'http2',
             'IsIPV6Enabled': enable_ipv6
         })
+        print(f"desired_config = {desired_config}")
 
         get_distribution(desired_config)
         create_distribution(desired_config, tags)
