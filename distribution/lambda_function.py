@@ -425,7 +425,7 @@ def update_distribution(desired_config):
     cloudfront_id = eh.props.get("id")
 
     try:
-        distribution = cloudfront.create_distribution_with_tags(
+        distribution = cloudfront.update_distribution(
             DistributionConfig=desired_config,
             Id=cloudfront_id,
         )
