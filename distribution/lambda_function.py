@@ -67,7 +67,6 @@ def lambda_handler(event, context):
 
         # you pull in whatever arguments you care about
         distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
-        s3_url_path = cdef.get("s3_url_path") or "/"
         aliases = cdef.get("aliases")
         if not aliases:
             eh.perm_error("No aliases defined for cloudfront distribution", 0)
@@ -86,7 +85,7 @@ def lambda_handler(event, context):
         oai_id = cdef.get("oai_id")
         origin_shield = {"Enabled": bool(cdef.get("origin_shield"))}
 
-        log_bucket = f'{cdef.get("logs_s3_bucket")}.s3.amazonaws.com' if cdef.get("logs_s3_bucket") or ""
+        log_bucket = f'{cdef.get("logs_s3_bucket")}.s3.amazonaws.com' if cdef.get("logs_s3_bucket") else ""
         logs_include_cookies = cdef.get("logs_include_cookies") or False
         logs_prefix = cdef.get("logs_s3_prefix") or ""
 
@@ -96,6 +95,8 @@ def lambda_handler(event, context):
 
         cached_methods = cdef.get("cached_methods") or ["HEAD", "GET"]
         allowed_methods = cdef.get("allowed_methods") or ["HEAD", "GET"]
+
+        enable_ipv6 = cdef.get("enable_ipv6", True)
 
         try:
             cache_policy_id = cdef.get("cache_policy_id") or cache_policy_name_to_id(cdef.get("cache_policy_name")) or "658327ea-f89d-4fab-a63d-7e88639e58f6"
@@ -124,9 +125,6 @@ def lambda_handler(event, context):
             ]
         }
 
-        base_domain_length = len(cdef.get("base_domain")) if cdef.get("base_domain") else 0
-        domain = cdef.get("domain") or (form_domain(component_safe_name(project_code, repo_id, cname, no_underscores=True, max_chars=62-base_domain_length), cdef.get("base_domain")) if cdef.get("base_domain") else None)
-
         # If I've been run before, just run the functions, don't set any operations
         if event.get("pass_back_data"):
             print(f"pass_back_data found")
@@ -148,7 +146,7 @@ def lambda_handler(event, context):
         
         """
 
-        get_acm_cert(domain, region)
+        get_acm_cert(aliases[0], region)
         get_s3_website_config(target_s3_bucket)
 
         s3_origin_config = None
