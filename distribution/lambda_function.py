@@ -141,7 +141,7 @@ def lambda_handler(event, context):
             if target_s3_bucket:
                 eh.add_op("get_s3_website_config")
             if distribution_id:
-                eh.add_op("get_distribution")
+                eh.add_op("get_distribution", distribution_id)
             else:
                 eh.add_op("create_distribution")
         elif event.get("op") == "delete":
@@ -364,7 +364,7 @@ def get_s3_website_config(bucket_name):
 
 @ext(handler=eh, op="get_distribution")
 def get_distribution(desired_config):
-    distribution_id = eh.props.get("distribution_id")
+    distribution_id = eh.ops["get_distribution"]
 
     try:
         result = cloudfront.get_distribution(Id=distribution_id)
