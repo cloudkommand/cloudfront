@@ -10,8 +10,6 @@
                 "AWS::codebuild::project", 
                 "AWS::route53::recordset"
             ],
-            "environment_variables": {
-            },
             "policy": {
                 "Version": "2012-10-17",
                 "Statement": [{
