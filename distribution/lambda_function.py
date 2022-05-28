@@ -103,6 +103,7 @@ def lambda_handler(event, context):
 
         cached_methods = cdef.get("cached_methods") or ["HEAD", "GET"]
         allowed_methods = cdef.get("allowed_methods") or ["HEAD", "GET"]
+        allowed_ssl_protocols = cdef.get("allowed_ssl_protocols") or ["TLSv1", "TLSv1.1", "TLSv1.2"]
 
         enable_ipv6 = cdef.get("enable_ipv6", True)
 
@@ -184,8 +185,8 @@ def lambda_handler(event, context):
                 "HTTPSPort": 443,
                 "OriginProtocolPolicy": "https-only" if cdef.get("force_https") else "match-viewer",
                 "OriginSslProtocols": {
-                    "Quantity": len(cdef.get("allowed_ssl_protocols")),
-                    "Items": cdef.get("allowed_ssl_protocols")
+                    "Quantity": len(allowed_ssl_protocols),
+                    "Items": allowed_ssl_protocols
                 },
                 "OriginReadTimeout": 30,
                 "OriginKeepaliveTimeout": 5,
@@ -301,7 +302,7 @@ def lambda_handler(event, context):
     except Exception as e:
         msg = traceback.format_exc()
         print(msg)
-        eh.add_log("Untitled Error", {"error": msg}, is_error=True)
+        eh.add_log("Unexpected Error", {"error": msg}, is_error=True)
         eh.declare_return(200, 0, error_code=str(e))
         return eh.finish()
 
@@ -379,6 +380,7 @@ def get_distribution(desired_config):
             eh.add_props({
                 "id": distribution["Id"],
                 "arn": distribution["ARN"],
+                "domain_name": distribution["DomainName"],
                 "etag": result.get("ETag")
             })
             eh.add_log("No Update Necessary. Exiting", {"distribution": distribution})
@@ -412,6 +414,7 @@ def create_distribution(desired_config, tags):
         eh.add_props({
             "id": distribution["Distribution"]["Id"],
             "arn": distribution["Distribution"]["ARN"],
+            "domain_name": distribution["Distribution"]["DomainName"],
             "location": distribution.get("Location"),
             "etag": distribution.get("ETag")
         })
@@ -434,6 +437,7 @@ def update_distribution(desired_config):
         eh.add_props({
             "id": distribution["Distribution"]["Id"],
             "arn": distribution["Distribution"]["ARN"],
+            "domain_name": distribution["Distribution"]["DomainName"],
             "location": distribution.get("Location") or eh.props.get("location"),
             "etag": distribution.get("ETag")
         })

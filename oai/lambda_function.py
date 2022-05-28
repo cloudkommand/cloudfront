@@ -51,7 +51,7 @@ def lambda_handler(event, context):
     except Exception as e:
         msg = traceback.format_exc()
         print(msg)
-        eh.add_log("Untitled Error", {"error": str(e)}, is_error=True)
+        eh.add_log("Unexpected Error", {"error": str(e)}, is_error=True)
         eh.declare_return(200, 0, error_code=str(e))
         return eh.finish()
 
@@ -66,6 +66,7 @@ def get_oai(region):
         
         eh.add_props({
             "id": oai_id,
+            "arn": f"arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity {oai_id}",
             "s3_id": cloudfront_data["CloudFrontOriginAccessIdentity"]["S3CanonicalUserId"],
             "etag": cloudfront_data["ETag"]
         })
@@ -99,6 +100,7 @@ def create_oai(caller_reference, comment, region):
 
         eh.add_props({
             "id": oai_id,
+            "arn": f"arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity {oai_id}",
             "s3_id": cloudfront_data["CloudFrontOriginAccessIdentity"]["S3CanonicalUserId"],
             "etag": cloudfront_data["ETag"]
         })

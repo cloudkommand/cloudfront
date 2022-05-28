@@ -131,21 +131,33 @@
                 }
             },
             "props": {
-                "codebuild_project_arn": {
+                "id": {
                     "type": "string",
-                    "description": "The ARN of the codebuild project"
+                    "description": "The ID of this distribution"
                 },
-                "codebuild_project_name": {
+                "domain_name": {
                     "type": "string",
-                    "description": "The name of the codebuild project"
+                    "description": "The domain name assigned to the distribution"
                 },
-                "S3": {
-                    "type": "object",
-                    "description": "Props from the S3 component deployed"
+                "arn": {
+                    "type": "string",
+                    "description": "The ARN of the distribution"
                 },
-                "Route53": {
-                    "type": "object",
+                "location": {
+                    "type": "string",
                     "description": "Props from the route53 component deployed, if there is one"
+                },
+                "etag": {
+                    "type": "string",
+                    "description":"The etag of the distribution"
+                },
+                "certificate_arn": {
+                    "type": "string",
+                    "description": "The ARN of the ACM certificate used to validate the distribution"
+                },
+                "certificate_domain_name": {
+                    "type": "string",
+                    "description": "The domain name of the certificate used to validate the distribution"
                 }
             }
         },
@@ -181,6 +193,10 @@
                 "id": {
                     "type": "string",
                     "description": "The ID of the OAI"
+                },
+                "arn": {
+                    "type": "string",
+                    "description": "The ARN of the OAI"
                 },
                 "s3_id": {
                     "type": "string",
