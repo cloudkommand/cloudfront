@@ -166,7 +166,7 @@ def lambda_handler(event, context):
         if target_s3_bucket:
             #Warning about S3 Regions, they are funny. At some point should test in us-east-2 or something
             if eh.state.get("s3_is_website"):
-                domain_name = f"https://{target_s3_bucket}.s3-website.{region}.amazonaws.com"
+                domain_name = f"{target_s3_bucket}.s3-website.{region}.amazonaws.com"
             else:
                 domain_name = f"{target_s3_bucket}.s3.{region}.amazonaws.com"
                 if not oai_id:
