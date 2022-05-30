@@ -203,7 +203,7 @@ def lambda_handler(event, context):
                 'Quantity': 1,
                 'Items': [
                     remove_none_attributes({
-                        'Id': f'{aliases[0]}',
+                        'Id': f'{domain_name}',
                         'DomainName': domain_name,
                         'OriginPath': origin_path,
                         'OriginShield': origin_shield,
@@ -216,7 +216,7 @@ def lambda_handler(event, context):
                 ]
             },
             'DefaultCacheBehavior': {
-                'TargetOriginId': f'{aliases[0]}',
+                'TargetOriginId': f'{domain_name}',
                 # 'ForwardedValues': {
                 #     "Cookies": {
                 #         "Forward": "none"
@@ -338,8 +338,10 @@ def get_acm_cert(domain_name, region):
     certificate_arn = sorted_matching_certs[0]['CertificateArn']
     certificate_domain_name = sorted_matching_certs[0]['DomainName']
     eh.add_log("Found ACM Certificate", {"certificate_arn": certificate_arn, "certificate_domain_name": certificate_domain_name})
-    eh.add_props({"certificate_arn": certificate_arn,
-        "certificate_domain_name": certificate_domain_name})
+    eh.add_props({
+        "certificate_arn": certificate_arn,
+        "certificate_domain_name": certificate_domain_name
+    })
     eh.add_links({"ACM Certificate": gen_certificate_link(certificate_arn, region)})
 
 
@@ -374,15 +376,18 @@ def get_distribution(desired_config):
         print(distribution)
         print(desired_config)
 
-        if distribution != desired_config:
+        update_distribution = get_distribution_needs_update(desired_config, distribution)
+
+        eh.add_props({
+            "id": distribution["Id"],
+            "arn": distribution["ARN"],
+            "domain_name": distribution["DomainName"],
+            "etag": result.get("ETag")
+        })
+        if update_distribution:
             eh.add_op("update_distribution")
+            
         else:
-            eh.add_props({
-                "id": distribution["Id"],
-                "arn": distribution["ARN"],
-                "domain_name": distribution["DomainName"],
-                "etag": result.get("ETag")
-            })
             eh.add_log("No Update Necessary. Exiting", {"distribution": distribution})
 
     except ClientError as e:
@@ -431,6 +436,7 @@ def update_distribution(desired_config):
         distribution = cloudfront.update_distribution(
             DistributionConfig=desired_config,
             Id=cloudfront_id,
+            IfMatch=eh.props.get("etag")
         )
 
         eh.add_log("Updated Distribution", {"distribution": distribution})
@@ -489,6 +495,81 @@ def gen_distribution_link(distribution_id):
 
 def format_tags(tags_dict):
     return [{"Key": k, "Value": v} for k,v in tags_dict]
+
+def compare_items(a, b, key="Id"):
+    a_dict, b_dict = {}, {}
+    if a.get("Quantity", 0) != 0:
+        if key == "SET":
+            a_dict = set(a["Items"])
+        else:
+            a_dict = {x[key]:x for x in a["Items"]}
+    if b.get("Quantity", 0) != 0:
+        if key == "SET":
+            b_dict = set(b["Items"])
+        else:
+            b_dict = {x[key]:x for x in b["Items"]}
+    return a_dict == b_dict
+
+def get_distribution_needs_update(desired_config, distribution):
+    for k,v in desired_config.items():
+        if k in ["CallerReference"]:
+            continue
+        elif k in ["Origins"]:
+            if v.get("Quantity") == distribution.get("Origins", {}).get("Quantity"):
+                origin_dict = {x["DomainName"] for x in v.get("Items", [])}
+                existing_dict = {x["DomainName"] for x in distribution["DistributionConfig"].get("Origins", {}).get("Items", [])}
+                for k2, v2 in origin_dict.items():
+                    if k2 == "CustomHeaders":
+                        if not compare_items(v2, existing_dict.get(k2, {}), "HeaderName"):
+                            print(v2)
+                            print(existing_dict)
+                            return True
+                    elif k2 == "CustomOriginConfig":
+                        if existing_dict.get(k2):
+                            for k3, v3 in v2.items():
+                                if k3 == "OriginSslProtocols":
+                                    if not compare_items(v3, existing_dict.get(k2, {}).get(k3, {}), key="SET"):
+                                        print(v3)
+                                        print(existing_dict)
+                                        return True
+                                elif v3 != existing_dict.get(k2).get(k3):
+                                    print(v3)
+                                    print(existing_dict)
+                                    return True
+                    elif v2 != existing_dict.get(k2):
+                        print(v2)
+                        print(existing_dict)
+                        return True
+        elif k in ["CustomErrorResponses"]:
+            if not compare_items(v, distribution["DistributionConfig"][k], key="ErrorCode"):
+                print(k)
+                print(v)
+                print(distribution["DistributionConfig"][k])
+                return True
+        elif k == "DefaultCacheBehavior":
+            for k2, v2 in v.items():
+                if k2 == ["TrustedKeyGroups"]:
+                    if not compare_items(v2, distribution["DistributionConfig"][k][k2], "SET"):
+                        print(v2)
+                        print(distribution["DistributionConfig"][k][k2])
+                        return True
+                elif k2 in ["AllowedMethods"]:
+                    if not compare_items(v2, distribution["DistributionConfig"][k][k2], key="SET"):
+                        print(v2)
+                        print(distribution["DistributionConfig"][k][k2])
+                        return True
+                    if not compare_items(v2["CachedMethods"], distribution["DistributionConfig"][k][k2]["CachedMethods"], key="SET"):
+                        print(v2["CachedMethods"])
+                        print(distribution["DistributionConfig"][k][k2])
+                        return True
+                elif v2 != distribution["DistributionConfig"][k][k2]:
+                    print(v2)
+                    print(distribution["DistributionConfig"][k][k2])
+                    return True
+        elif v != distribution["DistributionConfig"][k]:
+            print(v)
+            print(distribution["DistributionConfig"][k])
+            return True
 
 def cache_policy_name_to_id(cache_policy_name):
     if not cache_policy_name:
