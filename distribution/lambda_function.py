@@ -229,11 +229,11 @@ def lambda_handler(event, context):
                 #         "Quantity": 0
                 #     }
                 # },
-                'TrustedKeyGroups': {
+                'TrustedKeyGroups': remove_none_attributes({
                     'Enabled': bool(key_group_ids),
                     'Quantity': len(key_group_ids),
-                    'Items': key_group_ids
-                },
+                    'Items': key_group_ids or None
+                }),
                 'TrustedSigners': {
                     'Enabled': False,
                     'Quantity': 0
@@ -433,7 +433,7 @@ def update_distribution(desired_config):
     cloudfront_id = eh.props.get("id")
 
     try:
-        _ = desired_config.pop("CallerReference")
+        # _ = desired_config.pop("CallerReference")
         distribution = cloudfront.update_distribution(
             DistributionConfig=desired_config,
             Id=cloudfront_id,
@@ -501,12 +501,12 @@ def compare_items(a, b, key="Id"):
     a_dict, b_dict = {}, {}
     if a.get("Quantity", 0) != 0:
         if key == "SET":
-            a_dict = set(a["Items"]) or {}
+            a_dict = set(a["Items"])
         else:
             a_dict = {x[key]:x for x in a["Items"]}
     if b.get("Quantity", 0) != 0:
         if key == "SET":
-            b_dict = set(b["Items"]) or {}
+            b_dict = set(b["Items"])
         else:
             b_dict = {x[key]:x for x in b["Items"]}
     return a_dict == b_dict
