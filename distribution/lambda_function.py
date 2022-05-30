@@ -536,7 +536,7 @@ def get_distribution_needs_update(desired_config, distribution):
                                     print(v3)
                                     print(existing_dict)
                                     return True
-                    elif v2 != existing_dict.get(k2):
+                    elif (v2 or existing_dict.get(k2)) and v2 != existing_dict.get(k2):
                         print(v2)
                         print(existing_dict)
                         return True
