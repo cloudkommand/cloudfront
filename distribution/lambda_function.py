@@ -98,7 +98,7 @@ def lambda_handler(event, context):
         logs_prefix = cdef.get("logs_s3_prefix") or ""
 
         key_group_ids = cdef.get("key_group_ids") or []
-        price_class = cdef.get("price_class") or "PriceClass_All"
+        price_class = fix_price_class(cdef.get("price_class"))
         web_acl_id = cdef.get("web_acl_id") or ""
 
         cached_methods = cdef.get("cached_methods") or ["HEAD", "GET"]
@@ -593,6 +593,14 @@ def cache_policy_name_to_id(cache_policy_name):
             return CACHE_POLICIES[cache_policy_name]
         except:
             raise KeyError(f"{cache_policy_name} is not a valid cache policy name. Valid names are {list(CACHE_POLICIES.keys())}")
+
+def fix_price_class(price_class):
+    if price_class and price_class in ["All", "100", "200"]:
+        return f"PriceClass_{price_class}"
+    elif price_class:
+        return price_class
+    else:
+        return "PriceClass_All"
 
 CACHE_POLICIES = {
     "CachingOptimized": "658327ea-f89d-4fab-a63d-7e88639e58f6",

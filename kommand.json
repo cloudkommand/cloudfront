@@ -73,7 +73,8 @@
                     "price_class": {
                         "type": "string",
                         "description": "The price class for the CloudFront distribution. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PriceClass.html",
-                        "enum": ["PriceClass_All", "PriceClass_100", "PriceClass_200"]
+                        "enum": ["All", "100", "200", "PriceClass_All", "PriceClass_100", "PriceClass_200"],
+                        "default": "PriceClass_All"
                     },
                     "web_acl_id": {
                         "type": "string",
