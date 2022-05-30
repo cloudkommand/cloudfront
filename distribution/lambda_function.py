@@ -67,7 +67,7 @@ def lambda_handler(event, context):
         # you pull in whatever arguments you care about
         
         if not eh.state.get("reference_id"):
-            eh.add_state({"reference_id": random_id()})
+            eh.add_state({"reference_id": eh.props.get("caller_reference") or random_id()})
         
         distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
         if distribution_id:
@@ -382,6 +382,7 @@ def get_distribution(desired_config):
             "id": distribution["Id"],
             "arn": distribution["ARN"],
             "domain_name": distribution["DomainName"],
+            "caller_reference": distribution["DistributionConfig"]["CallerReference"],
             "etag": result.get("ETag")
         })
         if update_distribution:
@@ -420,6 +421,7 @@ def create_distribution(desired_config, tags):
             "id": distribution["Distribution"]["Id"],
             "arn": distribution["Distribution"]["ARN"],
             "domain_name": distribution["Distribution"]["DomainName"],
+            "caller_reference": distribution["Distribution"]["DistributionConfig"]["CallerReference"],
             "location": distribution.get("Location"),
             "etag": distribution.get("ETag")
         })
@@ -433,6 +435,7 @@ def update_distribution(desired_config):
     cloudfront_id = eh.props.get("id")
 
     try:
+        desired_config["CallerReference"] = eh.props.get("caller_reference")
         # _ = desired_config.pop("CallerReference")
         distribution = cloudfront.update_distribution(
             DistributionConfig=desired_config,
@@ -445,6 +448,7 @@ def update_distribution(desired_config):
             "id": distribution["Distribution"]["Id"],
             "arn": distribution["Distribution"]["ARN"],
             "domain_name": distribution["Distribution"]["DomainName"],
+            "caller_reference": distribution["Distribution"]["DistributionConfig"]["CallerReference"],
             "location": distribution.get("Location") or eh.props.get("location"),
             "etag": distribution.get("ETag")
         })
