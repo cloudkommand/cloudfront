@@ -573,6 +573,13 @@ def get_distribution_needs_update(desired_config, distribution):
                     print(v2)
                     print(distribution["DistributionConfig"][k][k2])
                     return True
+        elif k == "ViewerCertificate":
+            for k2, v2 in v.items():
+                if v2 != distribution["DistributionConfig"].get(k, {}).get(k2):
+                    print(k2)
+                    print(v2)
+                    print(distribution["DistributionConfig"][k][k2])
+                    return True
         elif v != distribution["DistributionConfig"][k]:
             print(v)
             print(distribution["DistributionConfig"][k])
