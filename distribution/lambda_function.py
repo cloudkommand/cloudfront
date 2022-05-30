@@ -549,8 +549,9 @@ def get_distribution_needs_update(desired_config, distribution):
                 return True
         elif k == "DefaultCacheBehavior":
             for k2, v2 in v.items():
-                if k2 == ["TrustedKeyGroups"]:
+                if k2 == "TrustedKeyGroups":
                     if not compare_items(v2, distribution["DistributionConfig"][k][k2], "SET"):
+                        print(k2)
                         print(v2)
                         print(distribution["DistributionConfig"][k][k2])
                         return True
@@ -564,6 +565,7 @@ def get_distribution_needs_update(desired_config, distribution):
                         print(distribution["DistributionConfig"][k][k2])
                         return True
                 elif v2 != distribution["DistributionConfig"][k][k2]:
+                    print(k2)
                     print(v2)
                     print(distribution["DistributionConfig"][k][k2])
                     return True
