@@ -146,6 +146,7 @@ def lambda_handler(event, context):
             else:
                 eh.add_op("create_distribution")
         elif event.get("op") == "delete":
+            eh.add_op("get_distribution", distribution_id)
             eh.add_op("delete_distribution", distribution_id)
 
 
@@ -203,7 +204,7 @@ def lambda_handler(event, context):
                 'Quantity': 1,
                 'Items': [
                     remove_none_attributes({
-                        'Id': f'{aliases[0]}',
+                        'Id': domain_name,
                         'DomainName': domain_name,
                         'OriginPath': origin_path,
                         'OriginShield': origin_shield,
@@ -216,7 +217,7 @@ def lambda_handler(event, context):
                 ]
             },
             'DefaultCacheBehavior': {
-                'TargetOriginId': f'{aliases[0]}',
+                'TargetOriginId': domain_name,
                 # 'ForwardedValues': {
                 #     "Cookies": {
                 #         "Forward": "none"
@@ -269,7 +270,7 @@ def lambda_handler(event, context):
                 "Prefix": logs_prefix
             },
             'PriceClass': price_class,
-            'Enabled': True,
+            'Enabled': True if event.get("op") == "upsert" else False,
             'ViewerCertificate': remove_none_attributes({
                 'ACMCertificateArn': eh.props.get("certificate_arn"),
                 "CloudFrontDefaultCertificate": False,
@@ -460,7 +461,10 @@ def delete_distribution():
     cloudfront_id = eh.ops["delete_distribution"]
 
     try:
-        cloudfront.delete_distribution(Id=cloudfront_id)
+        cloudfront.delete_distribution(
+            Id=cloudfront_id,
+            IfMatch=eh.props.get("etag")
+        )
         eh.add_log("Deleted Distribution", {"distribution_id": cloudfront_id})
     except ClientError as e:
         handle_common_errors(e, eh, "Delete Distribution Failed", 12, CLOUDFRONT_ERRORS)
