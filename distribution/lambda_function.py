@@ -612,7 +612,7 @@ CLOUDFRONT_ERRORS = [
     "FieldLevelEncryptionEntityAlreadyExists", "InvalidCloudFrontOriginAccessIdentity",
     "InvalidCloudFrontOriginAccessIdentityConfig", "InvalidIfMatchVersion",
     "NoSuchCloudFrontOriginAccessIdentity", "PreconditionFailed",
-    "InvalidForwardCookies"
+    "InvalidForwardCookies", "IllegalUpdate"
 ]
 
 # @ext(handler=eh, op="check_build_complete")
