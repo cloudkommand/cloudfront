@@ -82,7 +82,7 @@ def lambda_handler(event, context):
         target_s3_bucket = cdef.get("target_s3_bucket")
         target_ec2_instance = cdef.get("target_ec2_instance")
         target_load_balancer = cdef.get("target_load_balancer")
-        origin_path = cdef.get("origin_path")
+        origin_path = cdef.get("origin_path") or ""
         custom_origin_headers = cdef.get("custom_origin_headers") or {}
         custom_headers = remove_none_attributes({
             "Quantity": len(custom_origin_headers.keys()), 
