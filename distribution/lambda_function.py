@@ -501,12 +501,12 @@ def compare_items(a, b, key="Id"):
     a_dict, b_dict = {}, {}
     if a.get("Quantity", 0) != 0:
         if key == "SET":
-            a_dict = set(a["Items"])
+            a_dict = set(a["Items"]) or {}
         else:
             a_dict = {x[key]:x for x in a["Items"]}
     if b.get("Quantity", 0) != 0:
         if key == "SET":
-            b_dict = set(b["Items"])
+            b_dict = set(b["Items"]) or {}
         else:
             b_dict = {x[key]:x for x in b["Items"]}
     return a_dict == b_dict
