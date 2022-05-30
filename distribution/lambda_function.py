@@ -203,7 +203,7 @@ def lambda_handler(event, context):
                 'Quantity': 1,
                 'Items': [
                     remove_none_attributes({
-                        'Id': f'{domain_name}',
+                        'Id': f'{aliases[0]}',
                         'DomainName': domain_name,
                         'OriginPath': origin_path,
                         'OriginShield': origin_shield,
@@ -216,7 +216,7 @@ def lambda_handler(event, context):
                 ]
             },
             'DefaultCacheBehavior': {
-                'TargetOriginId': f'{domain_name}',
+                'TargetOriginId': f'{aliases[0]}',
                 # 'ForwardedValues': {
                 #     "Cookies": {
                 #         "Forward": "none"
@@ -433,6 +433,7 @@ def update_distribution(desired_config):
     cloudfront_id = eh.props.get("id")
 
     try:
+        _ = desired_config.pop("CallerReference")
         distribution = cloudfront.update_distribution(
             DistributionConfig=desired_config,
             Id=cloudfront_id,
