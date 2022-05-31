@@ -27,6 +27,7 @@ def lambda_handler(event, context):
         caller_reference = random_id()
         caller_reference = component_safe_name(project_code, repo_id, cname, max_chars=64)
         comment = cdef.get("comment") or f"Created by CK"
+        oai_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
         # region = cdef.get("region")
         prev_state = event.get("prev_state") or {}
     
@@ -34,8 +35,8 @@ def lambda_handler(event, context):
         if pass_back_data:
             pass
         elif event.get("op") == "upsert":
-            if prev_state.get("props", {}).get("id"):
-                eh.add_op("get_oai", prev_state.get("props", {}).get("id"))
+            if oai_id:
+                eh.add_op("get_oai", oai_id)
             else:
                 eh.add_op("create_oai")
 
