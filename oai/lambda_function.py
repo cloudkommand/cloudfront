@@ -17,7 +17,7 @@ def lambda_handler(event, context):
         # account_number = account_context(context)['number']
         region = account_context(context)['region']
         eh.capture_event(event)
-        prev_state = event.get("prev_state")
+        prev_state = event.get("prev_state") or {}
         project_code = event.get("project_code")
         repo_id = event.get("repo_id")
         cdef = event.get("component_def")
