@@ -146,6 +146,10 @@ def lambda_handler(event, context):
             else:
                 eh.add_op("create_distribution")
         elif event.get("op") == "delete":
+            # eh.add_op("get_acm_cert")
+            if target_s3_bucket:
+                eh.add_op("get_s3_website_config")
+            
             eh.add_op("get_distribution", distribution_id)
             eh.add_op("delete_distribution", distribution_id)
 
@@ -172,9 +176,9 @@ def lambda_handler(event, context):
                 domain_name = f"{target_s3_bucket}.s3.{region}.amazonaws.com"
                 if not oai_id:
                     eh.add_log("WARN: No OAI", {"cdef": cdef}, is_error=True)
-                s3_origin_config = {
+                s3_origin_config = remove_none_attributes({
                     "OriginAccessIdentity": f'origin-access-identity/cloudfront/{oai_id}' if oai_id else None
-                }
+                }) or None
         elif target_ec2_instance:
             domain_name = f"{target_ec2_instance}.compute-1.amazonaws.com"
         elif target_load_balancer:
