@@ -524,31 +524,44 @@ def get_distribution_needs_update(desired_config, distribution):
         if k in ["CallerReference"]:
             continue
         elif k in ["Origins"]:
-            if v.get("Quantity") == distribution.get("Origins", {}).get("Quantity"):
-                origin_dict = {x["DomainName"] for x in v.get("Items", [])}
-                existing_dict = {x["DomainName"] for x in distribution["DistributionConfig"].get("Origins", {}).get("Items", [])}
+            if v.get("Quantity") == distribution["DistributionConfig"].get("Origins", {}).get("Quantity"):
+                origin_dict = {x["DomainName"]:x for x in v.get("Items", [])}
+                existing_dict = {x["DomainName"]:x for x in distribution["DistributionConfig"].get("Origins", {}).get("Items", [])}
+                if set(origin_dict.keys()) != set(existing_dict.keys()):
+                    print("Different origins")
+                    print(set(origin_dict.keys()))
+                    print(set(existing_dict.keys()))
+                    return True
+
                 for k2, v2 in origin_dict.items():
-                    if k2 == "CustomHeaders":
-                        if not compare_items(v2, existing_dict.get(k2, {}), "HeaderName"):
-                            print(v2)
-                            print(existing_dict)
-                            return True
-                    elif k2 == "CustomOriginConfig":
-                        if existing_dict.get(k2):
-                            for k3, v3 in v2.items():
-                                if k3 == "OriginSslProtocols":
-                                    if not compare_items(v3, existing_dict.get(k2, {}).get(k3, {}), key="SET"):
+                    for k3, v3 in v2.items():
+                        if k3 == "CustomHeaders":
+                            if not compare_items(v2, existing_dict.get(k2, {}), "HeaderName"):
+                                print(v2)
+                                print(existing_dict)
+                                return True
+                        elif k3 == "CustomOriginConfig":
+                            if existing_dict[k2].get(k3):
+                                for k4, v4 in v3.items():
+                                    if k4 == "OriginSslProtocols":
+                                        if not compare_items(v4, existing_dict.get(k2, {}).get(k3, {}).get(k4, {}), key="SET"):
+                                            print(v4)
+                                            print(existing_dict)
+                                            return True
+                                    elif v4 != existing_dict.get(k2, {}).get(k3, {}).get(k4):
                                         print(v3)
                                         print(existing_dict)
                                         return True
-                                elif v3 != existing_dict.get(k2).get(k3):
-                                    print(v3)
-                                    print(existing_dict)
-                                    return True
-                    elif (v2 or existing_dict.get(k2)) and v2 != existing_dict.get(k2):
-                        print(v2)
-                        print(existing_dict)
-                        return True
+                        elif (v3 or existing_dict[k2].get(k3)) and v3 != existing_dict[k2].get(k3):
+                            print(k3)
+                            print(v3)
+                            print(existing_dict[k2].get(k3))
+                            return True
+            else:
+                print(f"Different number of origins")
+                print(v)
+                print(distribution.get("Origins", {}))
+                return True
         elif k in ["CustomErrorResponses"]:
             if not compare_items(v, distribution["DistributionConfig"][k], key="ErrorCode"):
                 print(k)
@@ -588,6 +601,7 @@ def get_distribution_needs_update(desired_config, distribution):
             print(v)
             print(distribution["DistributionConfig"][k])
             return True
+        
 
 def cache_policy_name_to_id(cache_policy_name):
     if not cache_policy_name:
