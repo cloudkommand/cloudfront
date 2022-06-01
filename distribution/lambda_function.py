@@ -147,6 +147,10 @@ def lambda_handler(event, context):
                 eh.add_op("create_distribution")
         elif event.get("op") == "delete":
             # eh.add_op("get_acm_cert")
+            eh.add_props({
+                "certificate_arn": prev_state.get("props", {}).get("certificate_arn")
+            })
+
             if target_s3_bucket:
                 eh.add_op("get_s3_website_config")
             
@@ -461,7 +465,7 @@ def update_distribution(desired_config):
             "etag": distribution.get("ETag")
         })
     except ClientError as e:
-        if desired_config.get("Enabled") == False and eh.response["Error"]["Code"] == "NoSuchDistribution":
+        if (desired_config.get("Enabled") == False) and (e.response["Error"]["Code"] == "NoSuchDistribution"):
             eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
             eh.complete_op("delete_distribution")
         else:
