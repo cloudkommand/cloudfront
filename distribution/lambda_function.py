@@ -427,6 +427,8 @@ def create_distribution(desired_config, tags):
             "etag": distribution.get("ETag")
         })
         eh.add_links({"CloudFront Distribution": gen_distribution_link(distribution["Distribution"]["Id"])})
+        eh.add_op("check_distribution_deployed")
+
     except ClientError as e:
         handle_common_errors(e, eh, "Create Distribution Failed", 12, CLOUDFRONT_ERRORS)
 
@@ -454,7 +456,11 @@ def update_distribution(desired_config):
             "etag": distribution.get("ETag")
         })
     except ClientError as e:
-        handle_common_errors(e, eh, "Update Distribution Failed", 12, CLOUDFRONT_ERRORS)
+        if desired_config.get("Enabled") == False and eh.response["Error"]["Code"] == "NoSuchDistribution":
+            eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
+            eh.complete_op("delete_distribution")
+        else:
+            handle_common_errors(e, eh, "Update Distribution Failed", 12, CLOUDFRONT_ERRORS)
 
 @ext(handler=eh, op="delete_distribution")
 def delete_distribution():
@@ -467,7 +473,26 @@ def delete_distribution():
         )
         eh.add_log("Deleted Distribution", {"distribution_id": cloudfront_id})
     except ClientError as e:
-        handle_common_errors(e, eh, "Delete Distribution Failed", 12, CLOUDFRONT_ERRORS)
+        if e.response["Error"]["Code"] == "NoSuchDistribution":
+            eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
+        else:
+            handle_common_errors(e, eh, "Delete Distribution Failed", 60, CLOUDFRONT_ERRORS)
+
+@ext(handler=eh, op="check_distribution_deployed")
+def check_distribution_deployed():
+    try:
+        response = cloudfront.get_distribution(
+            Id=eh.props.get("id")
+        )
+
+        if response["Distribution"]["Status"] != "Deployed":
+            eh.add_log("Distribution Deploying", {"id": eh.props.get("id"), "status": response["Distribution"]["Status"]})
+            eh.retry_error(random_id(), {"distribution": response["Distribution"]}, callback_sec=8)
+        else:
+            eh.add_log("Distribution Fully Deployed")
+
+    except ClientError as e:
+        handle_common_errors(e, eh, "Get Distribution Failed", 65, CLOUDFRONT_ERRORS)
 
 @ext(handler=eh, op="add_tags")
 def add_tags():
