@@ -296,6 +296,7 @@ def lambda_handler(event, context):
         update_distribution(desired_config)
         remove_tags()
         add_tags()
+        check_distribution_deployed()
         delete_distribution()
             
         return eh.finish()
