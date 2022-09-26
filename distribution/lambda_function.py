@@ -484,6 +484,10 @@ def delete_distribution():
     except ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchDistribution":
             eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
+        #Test this
+        elif e.response["Error"]["Code"] == "DistributionInUse":
+            eh.add_log("Distribution Not Fully Disabled", {"distribution_id": cloudfront_id})
+            eh.retry_error(random_id(), "Distribution Not Fully Disabled", callback_sec=8)
         else:
             handle_common_errors(e, eh, "Delete Distribution Failed", 60, CLOUDFRONT_ERRORS)
 
