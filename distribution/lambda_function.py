@@ -500,7 +500,7 @@ def check_distribution_deployed():
 
         if response["Distribution"]["Status"] != "Deployed":
             eh.add_log("Distribution Deploying", {"id": eh.props.get("id"), "status": response["Distribution"]["Status"]})
-            eh.retry_error(random_id(), {"distribution": response["Distribution"]}, callback_sec=8)
+            eh.retry_error(random_id(), 65, callback_sec=8)
         else:
             eh.add_log("Distribution Fully Deployed")
 
