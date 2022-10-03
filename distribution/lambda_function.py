@@ -485,7 +485,7 @@ def delete_distribution():
         if e.response["Error"]["Code"] == "NoSuchDistribution":
             eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
         #Test this
-        elif e.response["Error"]["Code"] == "DistributionInUse":
+        elif e.response["Error"]["Code"] == "DistributionNotDisabled":
             eh.add_log("Distribution Not Fully Disabled", {"distribution_id": cloudfront_id})
             eh.retry_error(random_id(), "Distribution Not Fully Disabled", callback_sec=8)
         else:
