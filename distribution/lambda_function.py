@@ -69,12 +69,15 @@ def lambda_handler(event, context):
         if not eh.state.get("reference_id"):
             eh.add_state({"reference_id": eh.props.get("caller_reference") or random_id()})
         
-        distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
-        if distribution_id:
-            eh.add_props({
-                "id": distribution_id, 
-                "location": prev_state.get("props", {}).get("location")
-            })
+        #This handles the case where pass back data has already set the ID.
+        if not eh.props.get("id"):
+            distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
+            if distribution_id:
+                eh.add_props({
+                    "id": distribution_id, 
+                    "location": prev_state.get("props", {}).get("location")
+                })
+
         aliases = cdef.get("aliases")
         if not aliases:
             eh.perm_error("No aliases defined for cloudfront distribution", 0)
@@ -484,6 +487,10 @@ def delete_distribution():
     except ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchDistribution":
             eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
+        #Test this
+        elif e.response["Error"]["Code"] == "DistributionNotDisabled":
+            eh.add_log("Distribution Not Fully Disabled", {"distribution_id": cloudfront_id})
+            eh.retry_error(random_id(), 60, callback_sec=8)
         else:
             handle_common_errors(e, eh, "Delete Distribution Failed", 60, CLOUDFRONT_ERRORS)
 
@@ -496,7 +503,7 @@ def check_distribution_deployed():
 
         if response["Distribution"]["Status"] != "Deployed":
             eh.add_log("Distribution Deploying", {"id": eh.props.get("id"), "status": response["Distribution"]["Status"]})
-            eh.retry_error(random_id(), {"distribution": response["Distribution"]}, callback_sec=8)
+            eh.retry_error(random_id(), 65, callback_sec=8)
         else:
             eh.add_log("Distribution Fully Deployed")
 

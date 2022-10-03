@@ -30,7 +30,6 @@
                 "properties": {
                     "aliases": {
                         "type": "array",
-                        "required": true,
                         "description": "The name of the codebuild project. If not present this name will be auto-generated."
                     },
                     "target_s3_bucket": {
@@ -129,7 +128,8 @@
                         "type": "object",
                         "description": "A set of key-value pairs to attach to this API Gateway as tags"
                     }
-                }
+                },
+                "required": ["aliases"]
             },
             "props": {
                 "id": {
