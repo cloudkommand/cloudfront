@@ -487,7 +487,7 @@ def delete_distribution():
         #Test this
         elif e.response["Error"]["Code"] == "DistributionNotDisabled":
             eh.add_log("Distribution Not Fully Disabled", {"distribution_id": cloudfront_id})
-            eh.retry_error(random_id(), "Distribution Not Fully Disabled", callback_sec=8)
+            eh.retry_error(random_id(), 60, callback_sec=8)
         else:
             handle_common_errors(e, eh, "Delete Distribution Failed", 60, CLOUDFRONT_ERRORS)
 
