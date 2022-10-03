@@ -69,12 +69,15 @@ def lambda_handler(event, context):
         if not eh.state.get("reference_id"):
             eh.add_state({"reference_id": eh.props.get("caller_reference") or random_id()})
         
-        distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
-        if distribution_id:
-            eh.add_props({
-                "id": distribution_id, 
-                "location": prev_state.get("props", {}).get("location")
-            })
+        #This handles the case where pass back data has already set the ID.
+        if not eh.props.get("id"):
+            distribution_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
+            if distribution_id:
+                eh.add_props({
+                    "id": distribution_id, 
+                    "location": prev_state.get("props", {}).get("location")
+                })
+
         aliases = cdef.get("aliases")
         if not aliases:
             eh.perm_error("No aliases defined for cloudfront distribution", 0)
