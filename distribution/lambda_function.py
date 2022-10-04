@@ -422,6 +422,7 @@ def get_distribution(desired_config):
             "caller_reference": distribution["DistributionConfig"]["CallerReference"],
             "etag": result.get("ETag")
         })
+        eh.add_links({"CloudFront Distribution": gen_distribution_link(distribution["Id"])})
         if update_distribution:
             eh.add_op("update_distribution")
             
