@@ -340,9 +340,7 @@ def get_acm_cert(domain_names, region):
         except ClientError as e:
             handle_common_errors(e, eh, "List Certificates Failed", 0)
     
-    # print(certs)
-    print(list(filter(lambda x: domain_name.endswith(x["DomainName"].replace("*", "")), certs)))
-    
+
     #Check that all domain names are in the cert and all of them have one domain name that matches
     #the number of periods in the domain name
     sorted_matching_certs = []
@@ -350,6 +348,7 @@ def get_acm_cert(domain_names, region):
         add = True
         for domain_name in domain_names:
             matching_sans = list(filter(lambda x: domain_name.endswith(x.replace("*", "")), cert["SubjectAlternativeNames"]))
+            print(matching_sans)
             if not matching_sans:
                 add = False
                 break
@@ -360,6 +359,7 @@ def get_acm_cert(domain_names, region):
                 
                 add = False
                 break
+        print(f"cert = {cert}, add = {add}")
         if add:
             sorted_matching_certs.append(cert)
 
