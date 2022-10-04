@@ -170,7 +170,7 @@ def lambda_handler(event, context):
         
         """
 
-        get_acm_cert(aliases[0], region)
+        get_acm_cert(aliases, region)
         get_s3_website_config(target_s3_bucket)
 
         s3_origin_config = None
@@ -320,7 +320,7 @@ def lambda_handler(event, context):
         return eh.finish()
 
 @ext(handler=eh, op="get_acm_cert")
-def get_acm_cert(domain_name, region):
+def get_acm_cert(domain_names, region):
     cursor = 'none'
     certs = []
     while cursor:
@@ -331,19 +331,43 @@ def get_acm_cert(domain_name, region):
             })
             cert_response = acm.list_certificates(**payload)
             print(f"cert_response = {cert_response}")
-            certs.extend(cert_response.get("CertificateSummaryList", []))
+            for cert in cert_response.get("CertificateSummaryList", []):
+                cert_detail = acm.describe_certificate(CertificateArn=cert["CertificateArn"])
+                print(f"cert_detail = {cert_detail}")
+                certs.append(cert_detail["Certificate"])
+            
             cursor = cert_response.get("nextToken")
         except ClientError as e:
             handle_common_errors(e, eh, "List Certificates Failed", 0)
     
     # print(certs)
     print(list(filter(lambda x: domain_name.endswith(x["DomainName"].replace("*", "")), certs)))
-    sorted_matching_certs = list(filter(lambda x: domain_name.endswith(x["DomainName"].replace("*", "")), certs))
+    
+    #Check that all domain names are in the cert and all of them have one domain name that matches
+    #the number of periods in the domain name
+    sorted_matching_certs = []
+    for cert in certs:
+        add = True
+        for domain_name in domain_names:
+            matching_sans = list(filter(lambda x: domain_name.endswith(x.replace("*", "")), cert["SubjectAlternativeNames"]))
+            if not matching_sans:
+                add = False
+                break
+            elif (not domain_name in matching_sans
+                ) and not any(
+                [san.startswith("*") and (domain_name.count(".") == san.count(".")) 
+                for san in matching_sans]):
+                
+                add = False
+                break
+        if add:
+            sorted_matching_certs.append(cert)
+
     sorted_matching_certs.sort(key=lambda x:-len(x['DomainName']))
     print(f"sorted_matching_certs = {sorted_matching_certs}")
 
     if not sorted_matching_certs:
-        eh.perm_error("No Matching ACM Certificate Found, Cannot Create API Custom Domain")
+        eh.perm_error("No Matching ACM Certificate Found, Cannot Create Distribution", 0)
         eh.add_log("No Matching ACM Certificates", {"all_certs": certs}, is_error=True)
         return 0
 
