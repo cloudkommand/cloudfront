@@ -492,6 +492,7 @@ def update_distribution(desired_config):
             "location": distribution.get("Location") or eh.props.get("location"),
             "etag": distribution.get("ETag")
         })
+        eh.add_op("check_distribution_deployed")
     except ClientError as e:
         if (desired_config.get("Enabled") == False) and (e.response["Error"]["Code"] == "NoSuchDistribution"):
             eh.add_log("Distribution Does Not Exist", {"distribution_id": cloudfront_id})
