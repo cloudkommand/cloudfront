@@ -28,6 +28,7 @@ def lambda_handler(event, context):
         caller_reference = component_safe_name(project_code, repo_id, cname, max_chars=64)
         comment = cdef.get("comment") or f"Created by CK"
         oai_id = prev_state.get("props", {}).get("id") or cdef.get("existing_id")
+        oai_etag = prev_state.get("props", {}).get("etag")
         # region = cdef.get("region")
         prev_state = event.get("prev_state") or {}
     
@@ -45,7 +46,7 @@ def lambda_handler(event, context):
 
         get_oai(region)
         create_oai(caller_reference, comment, region)
-        delete_oai()
+        delete_oai(oai_etag)
             
         return eh.finish()
 
@@ -114,12 +115,13 @@ def create_oai(caller_reference, comment, region):
         handle_common_errors(e, eh, "Create OAI Failure", 0, ["TooManyCloudFrontOriginAccessIdentities"])
 
 @ext(handler=eh, op="delete_oai")
-def delete_oai():
+def delete_oai(oai_etag):
     oai_id = eh.ops["delete_oai"]
 
     try:
         cloudfront.delete_cloud_front_origin_access_identity(
-            Id=oai_id
+            Id=oai_id,
+            IfMatch=oai_etag
         )
         eh.add_log(f"Removed OAI", {"oai_id": oai_id})
     except botocore.exceptions.ClientError as e:
