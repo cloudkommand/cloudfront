@@ -115,7 +115,7 @@ def create_oai(caller_reference, comment, region):
 
 @ext(handler=eh, op="delete_oai")
 def delete_oai():
-    oai_id = eh.ops["get_oai"]
+    oai_id = eh.ops["delete_oai"]
 
     try:
         cloudfront.delete_cloud_front_origin_access_identity(
