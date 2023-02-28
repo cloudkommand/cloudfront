@@ -60,6 +60,7 @@ def lambda_handler(event, context):
         repo_id = event.get("repo_id")
         cdef = event.get("component_def")
         cname = event.get("component_name")
+        op = event.get("op")
         # Generate the identifier (if allowed) / name of the component here 
         
         # if there is no identifier beforehand, and you don't have config, just create
@@ -140,7 +141,7 @@ def lambda_handler(event, context):
         # If I've been run before, just run the functions, don't set any operations
         if event.get("pass_back_data"):
             print(f"pass_back_data found")
-        elif event.get("op") == "upsert":
+        elif op == "upsert":
             eh.add_op("get_acm_cert")
             if target_s3_bucket:
                 eh.add_op("get_s3_website_config")
@@ -148,14 +149,12 @@ def lambda_handler(event, context):
                 eh.add_op("get_distribution", distribution_id)
             else:
                 eh.add_op("create_distribution")
-        elif event.get("op") == "delete":
+        elif op == "delete":
             # eh.add_op("get_acm_cert")
             eh.add_props({
-                "certificate_arn": prev_state.get("props", {}).get("certificate_arn")
+                "certificate_arn": prev_state.get("props", {}).get("certificate_arn"),
+                "domain_name": prev_state.get("props", {}).get("domain_name")
             })
-
-            if target_s3_bucket:
-                eh.add_op("get_s3_website_config")
             
             eh.add_op("get_distribution", distribution_id)
             eh.add_op("delete_distribution", distribution_id)
@@ -175,7 +174,7 @@ def lambda_handler(event, context):
 
         s3_origin_config = None
         custom_origin_config = None
-        if target_s3_bucket:
+        if (op == "upsert") and target_s3_bucket:
             #Warning about S3 Regions, they are funny. At some point should test in us-east-2 or something
             if eh.state.get("s3_is_website"):
                 domain_name = f"{target_s3_bucket}.s3-website.{region}.amazonaws.com"
@@ -186,6 +185,9 @@ def lambda_handler(event, context):
                 s3_origin_config = remove_none_attributes({
                     "OriginAccessIdentity": f'origin-access-identity/cloudfront/{oai_id}' if oai_id else None
                 }) or None
+        elif target_s3_bucket:
+            domain_name = eh.props['domain_name']
+         
         elif target_ec2_instance:
             domain_name = f"{target_ec2_instance}.compute-1.amazonaws.com"
         elif target_load_balancer:
@@ -281,7 +283,7 @@ def lambda_handler(event, context):
                 "Prefix": logs_prefix
             },
             'PriceClass': price_class,
-            'Enabled': True if event.get("op") == "upsert" else False,
+            'Enabled': True if op == "upsert" else False,
             'ViewerCertificate': remove_none_attributes({
                 'ACMCertificateArn': eh.props.get("certificate_arn"),
                 "CloudFrontDefaultCertificate": False,
@@ -302,7 +304,7 @@ def lambda_handler(event, context):
         })
         print(f"desired_config = {desired_config}")
 
-        get_distribution(desired_config)
+        get_distribution(desired_config, op)
         create_distribution(desired_config, tags)
         update_distribution(desired_config)
         remove_tags()
@@ -403,7 +405,7 @@ def get_s3_website_config(bucket_name):
     eh.add_log("Got S3 Website Config", {"config": config})
 
 @ext(handler=eh, op="get_distribution")
-def get_distribution(desired_config):
+def get_distribution(desired_config, op):
     distribution_id = eh.ops["get_distribution"]
 
     try:
@@ -432,7 +434,11 @@ def get_distribution(desired_config):
     except ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchDistribution":
             eh.add_log("Distribution Does Not Exist", {"distribution_id": distribution_id})
-            eh.add_op("create_distribution")
+            if op == "upsert":
+                eh.add_op("create_distribution")
+            else:
+                eh.add_log("Distribution Does Not Exist. Exiting", {"distribution_id": distribution_id})
+                eh.complete_op("delete_distribution")
         else:
             handle_common_errors(e, eh, "Get Distribution Failed", 7)
         
