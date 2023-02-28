@@ -2,8 +2,8 @@
     "components": {
         "distribution": {
             "type": "ext",
-            "displayname": "CK Cloudfront distribution",
-            "description": "Creates Cloudfront distribution and other needed pieces for connecting to Route53 and an S3 bucket",
+            "displayname": "CK Cloudfront Distribution",
+            "description": "Creates a Cloudfront Distribution. Cloudfront Distributions tell AWS where you want content to be delivered from on their CDN. This plugin can be used on its own to serve content, but is generally used as a part of the reactapp or angularapp plugins to host websites.",
             "cloud": "AWS",
             "resources": [
                 "AWS::s3::bucket", 
@@ -30,54 +30,60 @@
                 "properties": {
                     "aliases": {
                         "type": "array",
-                        "description": "The name of the codebuild project. If not present this name will be auto-generated."
+                        "description": "The alternate domain name(s) to associate with the distribution. For example, if you want hitting yourwebsite.com to reach your distribution, you would add yourwebsite.com to this list. You can also add subdomains, like www.yourwebsite.com, if you want those to reach your distribution as well."
                     },
                     "target_s3_bucket": {
                         "type": "object",
-                        "description": "The dictionary of runtime versions you need to build your app. If not set, this will default to {\"nodejs\": 10}. See a list of possible values here: https://docs.aws.amazon.com/codebuild/latest/userguide/runtime-versions.html"
+                        "description": "The name of the S3 bucket to serve content from. This bucket must already exist. If you want to create a new bucket, use the s3 plugin."
                     },
                     "default_root_object": {
                         "type": "string",
-                        "description": "Commands installing required libraries/packages before a build is run.",
+                        "description": "If a path is not specified in the URL, the default root object will be returned. For example, if you specify index.html as the default root object, CloudFront returns that object from your distribution when a user enters the URL http://www.example.com/",
                         "default": "index.html"
                     },
                     "target_ec2_instance": {
                         "type": "string",
-                        "description": "The size of the codebuild container. Can speed up builds if you expect them to take a long time."
+                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist."
                     },
                     "target_load_balancer": {
                         "type": "string",
-                        "description": "The path to the index document for the website"
+                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist."
                     },
                     "origin_path": {
                         "type": "string",
-                        "description": "The path that handles 4XX class errors. Can be the same as the index_document"
+                        "description": "A subdirectory path to add to the origin. For example, if you want to serve content from the /static/ directory in your S3 bucket, you would specify /static here."
                     },
                     "origin_shield": {
                         "type": "boolean",
-                        "description": "A prefix to add in front of the s3 object"
+                        "description": "Whether you want to add origin shield to your distribution. It also incurs additional costs. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html"
                     },
                     "custom_origin_headers": {
                         "type": "object",
-                        "description": "A prefix to add in front of the s3 object"
+                        "description": "A set of key-value pairs to add to the origin request headers. For example, if you want to add a header called x-custom-header, you would specify {\"x-custom-header\": \"value\"} here. This is useful for some niche use cases, see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/add-origin-custom-headers.html for more details."
                     },
                     "force_https": {
                         "type": "boolean",
-                        "description": "Key-value pairs to attach as tags to the s3 bucket"
+                        "description": "If true, Cloudfront will always use HTTPS to connect to the origin. Otherwise, it will match the protocol the user used.",
+                        "default": false
                     },
                     "allowed_ssl_protocols": {
                         "type": "array",
-                        "description": "The domain name for your website"
+                        "description": "The SSL protocols that CloudFront can use when communicating with the origin. Allowed values in the array are TLSv1, TLSv1.1, TLSv1.2, and SSLv3",
+                        "default": ["TLSv1", "TLSv1.1", "TLSv1.2"]
                     },
                     "price_class": {
                         "type": "string",
-                        "description": "The price class for the CloudFront distribution. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PriceClass.html",
+                        "description": "The price class for the CloudFront distribution. 100 costs the least, but distributes the content to the least number of regions, while All costs the most and distributes content to all AWS regions. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PriceClass.html",
                         "enum": ["All", "100", "200", "PriceClass_All", "PriceClass_100", "PriceClass_200"],
                         "default": "PriceClass_All"
                     },
+                    "waf_web_acl_arn": {
+                        "type": "string",
+                        "description": "The ARN of the Web Application Firewall (WAF) web ACL to associate with the distribution. AWS WAF provides additional protections"
+                    },
                     "web_acl_id": {
                         "type": "string",
-                        "description": "The domain name for your website"
+                        "description": "A legacy parameter for the WAF web ACL ID for old-style WAF"
                     },
                     "logs_s3_bucket": {
                         "type": "string",
@@ -126,7 +132,7 @@
                     },
                     "tags": {
                         "type": "object",
-                        "description": "A set of key-value pairs to attach to this API Gateway as tags"
+                        "description": "A set of key-value pairs to attach to this Cloudfront distribution as tags"
                     }
                 },
                 "required": ["aliases"]
@@ -165,7 +171,7 @@
         "oai": {
             "type": "ext",
             "displayname": "CK Cloudfront OAI",
-            "description": "Creates Cloudfront Origin Access Identity",
+            "description": "Creates a Cloudfront Origin Access Identity (OAI). This is used to restrict access to an S3 bucket, in combination with an S3 bucket policy. This plugin is almost never used on its own, but is called by the reactapp and angularapp plugin.",
             "cloud": "AWS",
             "resources": ["AWS::cloudfront::oai"],
             "policy": {

@@ -87,6 +87,9 @@ def lambda_handler(event, context):
         target_ec2_instance = cdef.get("target_ec2_instance")
         target_load_balancer = cdef.get("target_load_balancer")
         origin_path = cdef.get("origin_path") or ""
+        if origin_path.endswith("/"):
+            origin_path = origin_path[:-1]
+
         custom_origin_headers = cdef.get("custom_origin_headers") or {}
         custom_headers = remove_none_attributes({
             "Quantity": len(custom_origin_headers.keys()), 
@@ -95,7 +98,10 @@ def lambda_handler(event, context):
         print(f"custom_headers = {custom_headers}")
 
         oai_id = cdef.get("oai_id")
-        origin_shield = {"Enabled": bool(cdef.get("origin_shield"))}
+        origin_shield = remove_none_attributes({
+            "Enabled": bool(cdef.get("origin_shield")),
+            "OriginShieldRegion": region if cdef.get("origin_shield") else None
+        })
 
         log_bucket = f'{cdef.get("logs_s3_bucket")}.s3.amazonaws.com' if cdef.get("logs_s3_bucket") else ""
         logs_include_cookies = cdef.get("logs_include_cookies") or False
@@ -103,7 +109,7 @@ def lambda_handler(event, context):
 
         key_group_ids = cdef.get("key_group_ids") or []
         price_class = fix_price_class(cdef.get("price_class"))
-        web_acl_id = cdef.get("web_acl_id") or ""
+        waf_acl_value = cdef.get("waf_web_acl_arn") or cdef.get("web_acl_id") or ""
 
         cached_methods = cdef.get("cached_methods") or ["HEAD", "GET"]
         allowed_methods = cdef.get("allowed_methods") or ["HEAD", "GET"]
@@ -298,7 +304,7 @@ def lambda_handler(event, context):
                     'Quantity': 0
                 }
             },
-            'WebACLId': web_acl_id or "",
+            'WebACLId': waf_acl_value or "",
             'HttpVersion': 'http2',
             'IsIPV6Enabled': enable_ipv6
         })
