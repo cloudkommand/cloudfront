@@ -6,9 +6,7 @@
             "description": "Creates a Cloudfront Distribution. Cloudfront Distributions tell AWS where you want content to be delivered from on their CDN. This plugin can be used on its own to serve content, but is generally used as a part of the reactapp or angularapp plugins to host websites.",
             "cloud": "AWS",
             "resources": [
-                "AWS::s3::bucket", 
-                "AWS::codebuild::project", 
-                "AWS::route53::recordset"
+                "AWS::cloudfront::distribution"
             ],
             "policy": {
                 "Version": "2012-10-17",
@@ -16,11 +14,16 @@
                     "Sid": "Vis",
                     "Effect": "Allow",
                     "Action": [
-                        "s3:*",
-                        "cloudfront:*",
-                        "acm:*",
-                        "route53:*", 
-                        "route53domains:*"
+                        "s3:GetBucketWebsite",
+                        "cloudfront:GetDistribution",
+                        "cloudfront:GetDistributionConfig",
+                        "cloudfront:CreateDistribution",
+                        "cloudfront:UpdateDistribution",
+                        "cloudfront:DeleteDistribution",
+                        "cloudfront:TagResource",
+                        "cloudfront:UntagResource",
+                        "acm:ListCertificates",
+                        "acm:DescribeCertificate"
                     ],
                     "Resource": "*"
                 }]
