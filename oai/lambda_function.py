@@ -125,7 +125,7 @@ def delete_oai(oai_etag):
         )
         eh.add_log(f"Removed OAI", {"oai_id": oai_id})
     except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == "ResourceNotFoundException":
+        if e.response['Error']['Code'] in ["ResourceNotFoundException", "NoSuchCloudFrontOriginAccessIdentity"]:
             eh.add_log("OAI does not exist, exiting", {"oai_id": oai_id})
         else:
             handle_common_errors(e, eh, "Delete OAI Failure", 0)
