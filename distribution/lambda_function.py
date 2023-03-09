@@ -125,6 +125,13 @@ def lambda_handler(event, context):
             cache_policy_id = ""
             eh.add_log("Invalid Cache Policy Name", {"value": str(e)})
             eh.perm_error(str(e), 0)
+        
+        try:
+            response_headers_policy_id = cdef.get("response_headers_policy_id") or response_headers_policy_name_to_id(cdef.get("response_headers_policy_name")) or "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+        except KeyError as e:
+            response_headers_policy_id = ""
+            eh.add_log("Invalid Response Header Policy Name", {"value": str(e)})
+            eh.perm_error(str(e), 0)
 
         tags = cdef.get("tags") or {}
 
@@ -272,6 +279,7 @@ def lambda_handler(event, context):
                         'Items': cached_methods
                     }
                 },
+                "ResponseHeadersPolicyId": response_headers_policy_id,
                 "CachePolicyId": cache_policy_id,
                 "Compress": False if cache_policy_id in [
                         "4135ea2d-6df8-44a3-9df3-4b5a84be39ad", "b2884449-e4de-46a7-ac36-70bc7f1ddd6d"
@@ -693,6 +701,15 @@ def cache_policy_name_to_id(cache_policy_name):
         except:
             raise KeyError(f"{cache_policy_name} is not a valid cache policy name. Valid names are {list(CACHE_POLICIES.keys())}")
 
+def response_headers_policy_name_to_id(response_headers_policy_name):
+    if not response_headers_policy_name:
+        return None
+    else:
+        try:
+            return RESPONSE_HEADERS_POLICIES[response_headers_policy_name]
+        except:
+            raise KeyError(f"{response_headers_policy_name} is not a valid cache policy name. Valid names are {list(RESPONSE_HEADERS_POLICIES.keys())}")
+
 def fix_price_class(price_class):
     if price_class and price_class in ["All", "100", "200"]:
         return f"PriceClass_{price_class}"
@@ -700,6 +717,14 @@ def fix_price_class(price_class):
         return price_class
     else:
         return "PriceClass_All"
+
+RESPONSE_HEADERS_POLICIES = {
+    "CORS-and-SecurityHeadersPolicy": "e61eb60c-9c35-4d20-a928-2b84e02af89c",
+    "CORS-With-Preflight": "5cc3b908-e619-4b99-88e5-2cf7f45965bd",
+    "CORS-with-preflight-and-SecurityHeadersPolicy": "eaab4381-ed33-4a86-88ca-d9558dc6cd63",
+    "SecurityHeadersPolicy": "67f7725c-6f97-4210-82d7-5512b31e9d03",
+    "SimpleCORS": "60669652-455b-4ae9-85a4-c4c02393f86c"
+}  
 
 CACHE_POLICIES = {
     "CachingOptimized": "658327ea-f89d-4fab-a63d-7e88639e58f6",
