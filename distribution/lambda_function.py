@@ -297,7 +297,7 @@ def lambda_handler(event, context):
                 "CloudFrontDefaultCertificate": False,
                 # "Certificate": eh.props["certificate_arn"],
                 # "CertificateSource": "acm",
-                "MinimumProtocolVersion": "TLSv1.1_2016" if eh.props.get("certificate_arn") else None,
+                "MinimumProtocolVersion": "TLSv1.2_2021" if eh.props.get("certificate_arn") else None,
                 'SSLSupportMethod': 'sni-only'  if eh.props.get("certificate_arn") else None
             }) or None,
             'Restrictions': {
