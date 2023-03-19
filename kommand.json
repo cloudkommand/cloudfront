@@ -115,7 +115,7 @@
                     },
                     "logs_prefix": {
                         "type": "string",
-                        "description": "The object prefix to add to the log files in s3",
+                        "description": "The object prefix to add to the log files in s3. Should end in a slash",
                         "default": ""
                     },
                     "key_group_ids": {
@@ -146,7 +146,18 @@
                     },
                     "cache_policy_name": {
                         "type": "string",
-                        "description": "The name of the managed cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html"
+                        "description": "The name of the managed cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html",
+                        "enum": ["CachingOptimized", "CachingOptimizedForUncompressedObjects", "CachingDisabled", "Elemental-MediaPackage", "Amplify"]
+                    },
+                    "response_headers_policy_id": {
+                        "type": "string",
+                        "description": "The ID of the response headers policy to use for this cloudfront distribution. Pass this or response_headers_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html",
+                        "default": "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+                    },
+                    "response_headers_policy_name": {
+                        "type": "string",
+                        "description": "The name of the managed response headers policy to use for this cloudfront distribution. Pass this or response_headers_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html",
+                        "enum": ["CORS-and-SecurityHeadersPolicy", "CORS-With-Preflight", "CORS-with-preflight-and-SecurityHeadersPolicy", "SecurityHeadersPolicy", "SimpleCORS"]
                     },
                     "tags": {
                         "type": "object",
