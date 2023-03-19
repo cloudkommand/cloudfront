@@ -5,6 +5,7 @@
             "displayname": "CK Cloudfront Distribution",
             "description": "Creates a Cloudfront Distribution. Cloudfront Distributions tell AWS where you want content to be delivered from on their CDN. This plugin can be used on its own to serve content, but is generally used as a part of the reactapp or angularapp plugins to host websites.",
             "cloud": "AWS",
+            "ck_plugin_tier": 3,
             "resources": [
                 "AWS::cloudfront::distribution"
             ],
@@ -37,12 +38,14 @@
                     },
                     "target_s3_bucket": {
                         "type": "object",
-                        "description": "The name of the S3 bucket to serve content from. This bucket must already exist. If you want to create a new bucket, use the s3 plugin."
+                        "description": "The name of the S3 bucket to serve content from. This bucket must already exist. If you want to create a new bucket, use the s3 plugin.",
+                        "common": true
                     },
                     "default_root_object": {
                         "type": "string",
                         "description": "If a path is not specified in the URL, the default root object will be returned. For example, if you specify index.html as the default root object, CloudFront returns that object from your distribution when a user enters the URL http://www.example.com/",
-                        "default": "index.html"
+                        "default": "index.html",
+                        "common": true
                     },
                     "target_ec2_instance": {
                         "type": "string",
@@ -50,24 +53,36 @@
                     },
                     "target_load_balancer": {
                         "type": "string",
-                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist."
+                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist.",
+                        "common": true
                     },
                     "origin_path": {
                         "type": "string",
-                        "description": "A subdirectory path to add to the origin. For example, if you want to serve content from the /static/ directory in your S3 bucket, you would specify /static here."
+                        "description": "A subdirectory path to add to the origin. For example, if you want to serve content from the /static/ directory in your S3 bucket, you would specify /static here.",
+                        "common": true
                     },
                     "origin_shield": {
                         "type": "boolean",
-                        "description": "Whether you want to add origin shield to your distribution. It also incurs additional costs. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html"
+                        "description": "Whether you want to add origin shield to your distribution. It incurs additional costs. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html"
                     },
                     "custom_origin_headers": {
                         "type": "object",
                         "description": "A set of key-value pairs to add to the origin request headers. For example, if you want to add a header called x-custom-header, you would specify {\"x-custom-header\": \"value\"} here. This is useful for some niche use cases, see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/add-origin-custom-headers.html for more details."
                     },
+                    "oai_id": {
+                        "type": "string",
+                        "description": "The ID of the origin access identity to use for the distribution.",
+                        "common": true
+                    },
+                    "existing_id": {
+                        "type": "string",
+                        "description": "Set this if you want CloudKommand to use an existing distribution. This is useful if you want to use a distribution that was created outside of CloudKommand."
+                    },
                     "force_https": {
                         "type": "boolean",
                         "description": "If true, Cloudfront will always use HTTPS to connect to the origin. Otherwise, it will match the protocol the user used.",
-                        "default": false
+                        "default": false,
+                        "common": true
                     },
                     "allowed_ssl_protocols": {
                         "type": "array",
@@ -135,7 +150,8 @@
                     },
                     "tags": {
                         "type": "object",
-                        "description": "A set of key-value pairs to attach to this Cloudfront distribution as tags"
+                        "description": "A set of key-value pairs to attach to this Cloudfront distribution as tags",
+                        "common": true
                     }
                 },
                 "required": ["aliases"]
@@ -169,7 +185,28 @@
                     "type": "string",
                     "description": "The domain name of the certificate used to validate the distribution"
                 }
-            }
+            },
+            "examples": [
+                {
+                    "displayname": "Distribution with Logging",
+                    "notes": "This creates a distribution with logging enabled. The logs will be stored in the bucket chrysler-picture-logs, and the logs will be prefixed with conquest/. It also uses an origin access identity to route traffic to the S3 bucket conquest-picture-bucket-great-car. The distribution will be available at conquest.chrysler.com.",
+                    "definition": {
+                        "type": "&cloudfront.distribution",
+                        "aliases": ["conquest.chrysler.com"],
+                        "target_s3_bucket": "conquest-picture-bucket-great-car",
+                        "oai_id": "&an_oai:props.id",
+                        "force_https": true,
+                        "price_class": "100",
+                        "logs_s3_bucket": "chrysler-picture-logs",
+                        "logs_include_cookies": false,
+                        "logs_prefix": "conquest/",
+                        "tags": {
+                            "Name": "Conquest",
+                            "Environment": "Production"
+                        }
+                    }
+                }
+            ]
         },
         "oai": {
             "type": "ext",
@@ -177,6 +214,7 @@
             "description": "Creates a Cloudfront Origin Access Identity (OAI). This is used to restrict access to an S3 bucket, in combination with an S3 bucket policy. This plugin is almost never used on its own, but is called by the reactapp and angularapp plugin.",
             "cloud": "AWS",
             "resources": ["AWS::cloudfront::oai"],
+            "ck_plugin_tier": 4,
             "policy": {
                 "Version": "2012-10-17",
                 "Statement": [{
@@ -216,7 +254,17 @@
                     "type": "object",
                     "description": "The etag of the OAI"
                 }
-            }
+            },
+            "examples": [
+                {
+                    "displayname": "Comment Added",
+                    "notes": "Only one parameter",
+                    "definition": {
+                        "type": "&cloudfront.oai",
+                        "comment": "A origin access identity for S3 bucket bucket2593"
+                    }
+                }
+            ]
         }
     },
     "repos": {
