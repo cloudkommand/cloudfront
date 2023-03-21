@@ -592,7 +592,7 @@ def gen_distribution_link(distribution_id):
     return f"https://console.aws.amazon.com/cloudfront/home?region=us-east-1#/distribution/{distribution_id}"
 
 def format_tags(tags_dict):
-    return [{"Key": k, "Value": v} for k,v in tags_dict]
+    return [{"Key": k, "Value": v} for k,v in tags_dict.items()]
 
 def compare_items(a, b, key="Id"):
     a_dict, b_dict = {}, {}
