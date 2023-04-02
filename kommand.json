@@ -277,8 +277,5 @@
                 }
             ]
         }
-    },
-    "repos": {
-        "iam": "https://github.com/cloudkommand/iam"
     }
 }
