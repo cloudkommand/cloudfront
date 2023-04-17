@@ -56,9 +56,9 @@
                         "description": "The ID of the load balancer to serve content from. This load balancer must already exist. Using this ignores the target_url parameter.",
                         "common": true
                     },
-                    "target_url": {
+                    "target_domain_name": {
                         "type": "string",
-                        "description": "The URL of the origin server to serve content from. Use this to connect to API Gateway or external servers.",
+                        "description": "The domain name of the origin server to serve content from. Use this to connect to API Gateway or external servers.",
                         "common": true
                     },
                     "origin_path": {
