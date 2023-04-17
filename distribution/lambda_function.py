@@ -84,7 +84,7 @@ def lambda_handler(event, context):
             eh.perm_error("No aliases defined for cloudfront distribution", 0)
             return eh.finish()
             
-        default_root_object = cdef.get("default_root_object") or "index.html"
+        default_root_object = cdef.get("default_root_object", "index.html")
         target_s3_bucket = cdef.get("target_s3_bucket")
         target_ec2_instance = cdef.get("target_ec2_instance")
         target_load_balancer = cdef.get("target_load_balancer")
