@@ -600,7 +600,7 @@ def gen_certificate_link(certificate_arn, region):
     return f"https://console.aws.amazon.com/acm/home?region={region}#/certificate/{certificate_arn.rsplit('/')[0]}"
 
 def gen_distribution_link(distribution_id):
-    return f"https://console.aws.amazon.com/cloudfront/home?region=us-east-1#/distribution/{distribution_id}"
+    return f"https://console.aws.amazon.com/cloudfront/home?region=us-east-1#/distributions/{distribution_id}"
 
 def format_tags(tags_dict):
     return [{"Key": k, "Value": v} for k,v in tags_dict.items()]
