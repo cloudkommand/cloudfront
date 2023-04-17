@@ -49,11 +49,16 @@
                     },
                     "target_ec2_instance": {
                         "type": "string",
-                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist."
+                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist. Using this ignores the target_url parameter."
                     },
                     "target_load_balancer": {
                         "type": "string",
-                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist.",
+                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist. Using this ignores the target_url parameter.",
+                        "common": true
+                    },
+                    "target_domain_name": {
+                        "type": "string",
+                        "description": "The domain name of the origin server to serve content from. Use this to connect to API Gateway or external servers.",
                         "common": true
                     },
                     "origin_path": {
@@ -148,6 +153,16 @@
                         "type": "string",
                         "description": "The name of the managed cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html",
                         "enum": ["CachingOptimized", "CachingOptimizedForUncompressedObjects", "CachingDisabled", "Elemental-MediaPackage", "Amplify"]
+                    },
+                    "origin_request_policy_id": {
+                        "type": "string",
+                        "description": "The ID of the origin request policy to use for this cloudfront distribution. Pass this or origin_request_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html",
+                        "enum": ["216adef6-5c7f-47e4-b989-5492eafa07d3", "33f36d7e-f396-46d9-90e0-52428a34d9dc", "b689b0a8-53d0-40ab-baf2-68738e2966ac", "59781a5b-3903-41f3-afcb-af62929ccde1", "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf", "775133bc-15f2-49f9-abea-afb2e0bf67d2", "acba4595-bd28-49b8-b9fe-13317c0390fa"]
+                    },
+                    "origin_request_policy_name": {
+                        "type": "string",
+                        "description": "The name of the managed origin request policy to use for this cloudfront distribution. Pass this or origin_request_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html",
+                        "enum": ["AllViewer", "AllViewerAndCloudFrontHeaders-2022-06", "AllViewerExceptHostHeader", "CORS-CustomOrigin", "CORS-S3Origin", "Elemental-MediaTailor-PersonalizedManifests", "UserAgentRefererHeaders"]
                     },
                     "response_headers_policy_id": {
                         "type": "string",
