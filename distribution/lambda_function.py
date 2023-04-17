@@ -126,7 +126,14 @@ def lambda_handler(event, context):
             cache_policy_id = ""
             eh.add_log("Invalid Cache Policy Name", {"value": str(e)})
             eh.perm_error(str(e), 0)
-        
+
+        try:
+            origin_request_policy_id = cdef.get("origin_request_policy_id") or origin_request_policy_name_to_id(cdef.get("origin_request_policy_name")) or None
+        except KeyError as e:
+            origin_request_policy_id = ""
+            eh.add_log("Invalid Origin Request Policy Name", {"value": str(e)})
+            eh.perm_error(str(e), 0)
+
         try:
             response_headers_policy_id = cdef.get("response_headers_policy_id") or response_headers_policy_name_to_id(cdef.get("response_headers_policy_name")) or "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
         except KeyError as e:
@@ -284,6 +291,7 @@ def lambda_handler(event, context):
                 },
                 "ResponseHeadersPolicyId": response_headers_policy_id,
                 "CachePolicyId": cache_policy_id,
+                "OriginRequestPolicyId": origin_request_policy_id,
                 "Compress": False if cache_policy_id in [
                         "4135ea2d-6df8-44a3-9df3-4b5a84be39ad", "b2884449-e4de-46a7-ac36-70bc7f1ddd6d"
                     ] else True,
@@ -704,6 +712,15 @@ def cache_policy_name_to_id(cache_policy_name):
         except:
             raise KeyError(f"{cache_policy_name} is not a valid cache policy name. Valid names are {list(CACHE_POLICIES.keys())}")
 
+def origin_request_policy_name_to_id(origin_request_policy_name):
+    if not origin_request_policy_name:
+        return None
+    else:
+        try:
+            return ORIGIN_REQUEST_POLICIES[origin_request_policy_name]
+        except:
+            raise KeyError(f"{origin_request_policy_name} is not a valid cache policy name. Valid names are {list(ORIGIN_REQUEST_POLICIES.keys())}")
+
 def response_headers_policy_name_to_id(response_headers_policy_name):
     if not response_headers_policy_name:
         return None
@@ -737,6 +754,16 @@ CACHE_POLICIES = {
     "Amplify": "2e54312d-136d-493c-8eb9-b001f22f67d2"
 }
 
+ORIGIN_REQUEST_POLICIES = {
+    "AllViewer": "216adef6-5c7f-47e4-b989-5492eafa07d3",
+    "AllViewerAndCloudFrontHeaders-2022-06": "33f36d7e-f396-46d9-90e0-52428a34d9dc",
+    "AllViewerExceptHostHeader": "b689b0a8-53d0-40ab-baf2-68738e2966ac",
+    "CORS-CustomOrigin": "59781a5b-3903-41f3-afcb-af62929ccde1",
+    "CORS-S3Origin": "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf",
+    "Elemental-MediaTailor-PersonalizedManifests": "775133bc-15f2-49f9-abea-afb2e0bf67d2",
+    "UserAgentRefererHeaders": "acba4595-bd28-49b8-b9fe-13317c0390fa"
+}
+
 CLOUDFRONT_ERRORS = [
     "CNAMEAlreadyExists", "InvalidOrigin", "InvalidOriginAccessIdentity",
     "AccessDenied", "InvalidViewerCertificate", "InvalidMinimumProtocolVersion",
@@ -763,32 +790,3 @@ CLOUDFRONT_ERRORS = [
     "NoSuchCloudFrontOriginAccessIdentity", "PreconditionFailed",
     "InvalidForwardCookies", "IllegalUpdate"
 ]
-
-# @ext(handler=eh, op="check_build_complete")
-# def check_build_complete(bucket):
-#     s3 = boto3.client("s3")
-
-#     build_key = eh.ops['check_build_complete']
-#     print(f'build_key = {build_key}')
-#     print(f"bucket = {bucket}")
-    
-#     try:
-#         response = s3.get_object(Bucket=bucket, Key=build_key)['Body']
-#         value = json.loads(response.read()).get("value")
-#         if value == "success":
-#             eh.add_log("Build Succeeded", response)
-#             eh.add_op("set_object_metadata")
-#             return None
-#         else:
-#             eh.add_log(f"End Build: error", response)
-#             eh.perm_error(f"End Build: error", progress=65)
-
-#     except botocore.exceptions.ClientError as e:
-#         if e.response['Error']['Code'] in ['NoSuchKey']:
-#             eh.add_log("Build In Progress", {"error": None})
-#             eh.retry_error(str(current_epoch_time_usec_num()), progress=65, callback_sec=8)
-#             # eh.add_log("Check Build Failed", {"error": str(e)}, True)
-#             # eh.perm_error(str(e), progress=65)
-#         else:
-#             eh.add_log("Check Build Error", {"error": str(e)}, True)
-#             eh.retry_error(str(e), progress=65)
