@@ -49,11 +49,16 @@
                     },
                     "target_ec2_instance": {
                         "type": "string",
-                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist."
+                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist. Using this ignores the target_url parameter."
                     },
                     "target_load_balancer": {
                         "type": "string",
-                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist.",
+                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist. Using this ignores the target_url parameter.",
+                        "common": true
+                    },
+                    "target_url": {
+                        "type": "string",
+                        "description": "The URL of the origin server to serve content from. Use this to connect to API Gateway or external servers.",
                         "common": true
                     },
                     "origin_path": {

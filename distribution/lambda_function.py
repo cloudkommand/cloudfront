@@ -88,6 +88,7 @@ def lambda_handler(event, context):
         target_s3_bucket = cdef.get("target_s3_bucket")
         target_ec2_instance = cdef.get("target_ec2_instance")
         target_load_balancer = cdef.get("target_load_balancer")
+        target_url = cdef.get("target_url")
         origin_path = cdef.get("origin_path") or ""
         if origin_path.endswith("/"):
             origin_path = origin_path[:-1]
@@ -207,6 +208,8 @@ def lambda_handler(event, context):
             domain_name = f"{target_ec2_instance}.compute-1.amazonaws.com"
         elif target_load_balancer:
             domain_name = f"{target_load_balancer}.{region}.elb.amazonaws.com"
+        elif target_url:
+            domain_name = target_url
 
         if not s3_origin_config:
             custom_origin_config = {
