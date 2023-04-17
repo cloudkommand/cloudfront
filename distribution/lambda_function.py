@@ -254,7 +254,7 @@ def lambda_handler(event, context):
                     }),
                 ]
             },
-            'DefaultCacheBehavior': {
+            'DefaultCacheBehavior': remove_none_attributes({
                 'TargetOriginId': domain_name,
                 # 'ForwardedValues': {
                 #     "Cookies": {
@@ -297,7 +297,7 @@ def lambda_handler(event, context):
                     ] else True,
                 "FieldLevelEncryptionId": "",
                 "SmoothStreaming": False
-            },
+            }),
             'CacheBehaviors':{
                 'Quantity': 0
             },
