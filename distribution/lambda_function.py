@@ -120,26 +120,43 @@ def lambda_handler(event, context):
 
         enable_ipv6 = cdef.get("enable_ipv6", True)
 
-        try:
-            cache_policy_id = cdef.get("cache_policy_id") or cache_policy_name_to_id(cdef.get("cache_policy_name")) or "658327ea-f89d-4fab-a63d-7e88639e58f6"
-        except KeyError as e:
-            cache_policy_id = ""
-            eh.add_log("Invalid Cache Policy Name", {"value": str(e)})
-            eh.perm_error(str(e), 0)
+        additional_behaviors = cdef.get("additional_behaviors") or []
 
-        try:
-            origin_request_policy_id = cdef.get("origin_request_policy_id") or origin_request_policy_name_to_id(cdef.get("origin_request_policy_name")) or None
-        except KeyError as e:
-            origin_request_policy_id = ""
-            eh.add_log("Invalid Origin Request Policy Name", {"value": str(e)})
-            eh.perm_error(str(e), 0)
+        def set_cache_policy_id(eh, def_item):
+            try:
+                cache_policy_id = def_item.get("cache_policy_id") or cache_policy_name_to_id(def_item.get("cache_policy_name")) or "658327ea-f89d-4fab-a63d-7e88639e58f6"
+                return cache_policy_id
+            except KeyError as e:
+                cache_policy_id = ""
+                eh.add_log("Invalid Cache Policy Name", {"value": str(e)})
+                eh.perm_error(str(e), 0)
+                return cache_policy_id
+            
+        cache_policy_id = set_cache_policy_id(eh, cdef)
+        
+        def set_origin_request_policy_id(eh, def_item):
+            try:
+                origin_request_policy_id = def_item.get("origin_request_policy_id") or origin_request_policy_name_to_id(def_item.get("origin_request_policy_name")) or None
+                return origin_request_policy_id
+            except KeyError as e:
+                origin_request_policy_id = ""
+                eh.add_log("Invalid Origin Request Policy Name", {"value": str(e)})
+                eh.perm_error(str(e), 0)
+                return origin_request_policy_id
+        
+        origin_request_policy_id = set_origin_request_policy_id(eh, cdef)
 
-        try:
-            response_headers_policy_id = cdef.get("response_headers_policy_id") or response_headers_policy_name_to_id(cdef.get("response_headers_policy_name")) or "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
-        except KeyError as e:
-            response_headers_policy_id = ""
-            eh.add_log("Invalid Response Header Policy Name", {"value": str(e)})
-            eh.perm_error(str(e), 0)
+        def set_response_headers_policy_id(eh, def_item):
+            try:
+                response_headers_policy_id = def_item.get("response_headers_policy_id") or response_headers_policy_name_to_id(def_item.get("response_headers_policy_name")) or "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+                return response_headers_policy_id
+            except KeyError as e:
+                response_headers_policy_id = ""
+                eh.add_log("Invalid Response Header Policy Name", {"value": str(e)})
+                eh.perm_error(str(e), 0)
+                return response_headers_policy_id
+        
+        response_headers_policy_id = set_response_headers_policy_id(eh, cdef)
 
         tags = cdef.get("tags") or {}
 
@@ -298,9 +315,50 @@ def lambda_handler(event, context):
                 "FieldLevelEncryptionId": "",
                 "SmoothStreaming": False
             }),
-            'CacheBehaviors':{
-                'Quantity': 0
-            },
+            'CacheBehaviors': remove_none_attributes({
+                'Quantity': len(additional_behaviors) or 0,
+                'Items': [{
+                    'PathPattern': behavior.get("path_pattern"),
+                    'TargetOriginId': target_domain_name
+                        if behavior.get("target") == "domain" 
+                            else target_s3_bucket 
+                            if behavior.get("target") == "s3"
+                                else target_load_balancer
+                                if behavior.get("target") == "load_balancer"
+                                    else target_ec2_instance
+                                    if behavior.get("target") == "ec2"
+                                        else None,
+                    'TrustedKeyGroups': remove_none_attributes({
+                        'Enabled': bool(behavior.get("key_group_ids", [])),
+                        'Quantity': len(behavior.get("key_group_ids", [])),
+                        'Items': behavior.get("key_group_ids", []) or None
+                    }),
+                    'TrustedSigners': {
+                        'Enabled': False,
+                        'Quantity': 0
+                    },
+                    'ViewerProtocolPolicy': 'redirect-to-https' if behavior.get("force_https") else "allow-all",
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    'AllowedMethods': {
+                        'Quantity': len(behavior.get("allowed_methods", ["HEAD", "GET"])),
+                        'Items': behavior.get("allowed_methods", ["HEAD", "GET"]),
+                        'CachedMethods': {
+                            'Quantity': len(behavior.get("cached_methods", ["HEAD", "GET"])),
+                            'Items': behavior.get("cached_methods", ["HEAD", "GET"])
+                        }
+                    },
+                    "ResponseHeadersPolicyId": set_response_headers_policy_id(eh, behavior),
+                    "CachePolicyId": set_cache_policy_id(eh, behavior),
+                    "OriginRequestPolicyId": set_origin_request_policy_id(eh, behavior),
+                    "Compress": False if set_cache_policy_id(eh, behavior) in [
+                            "4135ea2d-6df8-44a3-9df3-4b5a84be39ad", "b2884449-e4de-46a7-ac36-70bc7f1ddd6d"
+                        ] else True,
+                    "FieldLevelEncryptionId": "",
+                    "SmoothStreaming": False
+                } for behavior in additional_behaviors] if additional_behaviors else None
+            }),
             'CustomErrorResponses': error_responses,
             'Comment': f'{aliases[0]}',
             'Logging': {
@@ -329,6 +387,7 @@ def lambda_handler(event, context):
             'HttpVersion': 'http2',
             'IsIPV6Enabled': enable_ipv6
         })
+        
         print(f"desired_config = {desired_config}")
 
         get_distribution(desired_config, op)

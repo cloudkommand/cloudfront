@@ -178,7 +178,56 @@
                         "type": "object",
                         "description": "A set of key-value pairs to attach to this Cloudfront distribution as tags",
                         "common": true
-                    }
+                    },
+                    "additional_behaviors": {
+                        "type": "array",
+                        "description": "Additional cache behaviors for this distribution",
+                        "items": {
+                            "type": "object",
+                            "required": ["path_pattern", "target"],
+                            "properties": {
+                                "path_pattern": {
+                                    "type": "string",
+                                    "description": "The pattern (for example, images/*.jpg) that specifies which requests to apply the behavior to.",
+                                    "common": true
+                                },
+                                "target": {
+                                    "type": "string",
+                                    "description": "Specifies which of the above declared targets CloudFront will route Requests to when they match this cache behavior.",
+                                    "enum": ["domain", "s3", "ec2", "load_balancer"],
+                                    "common": true
+                                },
+                                "key_group_ids": {
+                                    "type": "array",
+                                    "description": "A list of key groups that CloudFront can use to validate signed URLs or signed cookies for this cache behavior"
+                                },
+                                "force_https": {
+                                    "type": "boolean",
+                                    "description": "If true, Cloudfront will always use HTTPS to connect to the origin for this cache behavior. Otherwise, it will match the protocol the user used.",
+                                    "default": false,
+                                    "common": true
+                                },
+                                "allowed_methods": {
+                                    "type": "array",
+                                    "description": "The allowed methods on this cloudfront distribution",
+                                    "enum": [
+                                        ["HEAD", "GET", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"], 
+                                        ["HEAD", "GET", "OPTIONS"],
+                                        ["HEAD", "GET"]
+                                    ],
+                                    "default": ["HEAD", "GET"]
+                                },
+                                allowed_methods
+                                cached_methods
+                                cache_policy_id
+                                cache_policy_name
+                                origin_request_policy_id
+                                origin_request_policy_name
+                                response_headers_policy_id
+                                response_headers_policy_name
+                            }
+                        }
+                    ]
                 },
                 "required": ["aliases"]
             },
