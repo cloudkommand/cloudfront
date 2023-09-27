@@ -217,17 +217,48 @@
                                     ],
                                     "default": ["HEAD", "GET"]
                                 },
-                                allowed_methods
-                                cached_methods
-                                cache_policy_id
-                                cache_policy_name
-                                origin_request_policy_id
-                                origin_request_policy_name
-                                response_headers_policy_id
-                                response_headers_policy_name
+                                "cached_methods": {
+                                    "type": "array",
+                                    "description": "The cached methods on this cloudfront distribution",
+                                    "enum": [
+                                        ["HEAD", "GET", "OPTIONS"],
+                                        ["HEAD", "GET"]
+                                    ],
+                                    "default": ["HEAD", "GET"]
+                                },
+                                "cache_policy_id": {
+                                    "type": "string",
+                                    "description": "The ID of the cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html",
+                                    "default": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+                                },
+                                "cache_policy_name": {
+                                    "type": "string",
+                                    "description": "The name of the managed cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html",
+                                    "enum": ["CachingOptimized", "CachingOptimizedForUncompressedObjects", "CachingDisabled", "Elemental-MediaPackage", "Amplify"]
+                                },
+                                "origin_request_policy_id": {
+                                    "type": "string",
+                                    "description": "The ID of the origin request policy to use for this cloudfront distribution. Pass this or origin_request_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html",
+                                    "enum": ["216adef6-5c7f-47e4-b989-5492eafa07d3", "33f36d7e-f396-46d9-90e0-52428a34d9dc", "b689b0a8-53d0-40ab-baf2-68738e2966ac", "59781a5b-3903-41f3-afcb-af62929ccde1", "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf", "775133bc-15f2-49f9-abea-afb2e0bf67d2", "acba4595-bd28-49b8-b9fe-13317c0390fa"]
+                                },
+                                "origin_request_policy_name": {
+                                    "type": "string",
+                                    "description": "The name of the managed origin request policy to use for this cloudfront distribution. Pass this or origin_request_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html",
+                                    "enum": ["AllViewer", "AllViewerAndCloudFrontHeaders-2022-06", "AllViewerExceptHostHeader", "CORS-CustomOrigin", "CORS-S3Origin", "Elemental-MediaTailor-PersonalizedManifests", "UserAgentRefererHeaders"]
+                                },
+                                "response_headers_policy_id": {
+                                    "type": "string",
+                                    "description": "The ID of the response headers policy to use for this cloudfront distribution. Pass this or response_headers_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html",
+                                    "default": "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
+                                },
+                                "response_headers_policy_name": {
+                                    "type": "string",
+                                    "description": "The name of the managed response headers policy to use for this cloudfront distribution. Pass this or response_headers_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html",
+                                    "enum": ["CORS-and-SecurityHeadersPolicy", "CORS-With-Preflight", "CORS-with-preflight-and-SecurityHeadersPolicy", "SecurityHeadersPolicy", "SimpleCORS"]
+                                }
                             }
                         }
-                    ]
+                    }
                 },
                 "required": ["aliases"]
             },

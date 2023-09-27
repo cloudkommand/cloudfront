@@ -749,6 +749,43 @@ def get_distribution_needs_update(desired_config, distribution):
                     print(v2)
                     print(distribution["DistributionConfig"][k][k2])
                     return True
+        elif k == "CacheBehaviors":
+            if v.get("Quantity") == distribution["DistributionConfig"].get("CacheBehaviors", {}).get("Quantity"):
+                cache_behaviors_dict = {x["TargetOriginId"]:x for x in v.get("Items", [])}
+                existing_cache_behaviors_dict = {x["TargetOriginId"]:x for x in distribution["DistributionConfig"].get("CacheBehaviors", {}).get("Items", [])}
+
+                if set(cache_behaviors_dict.keys()) != set(existing_cache_behaviors_dict.keys()):
+                    print("Different cache behaviors")
+                    print(set(cache_behaviors_dict.keys()))
+                    print(set(existing_cache_behaviors_dict.keys()))
+                    return True
+                
+                for k2, v2 in cache_behaviors_dict.items():
+                    for k3, v3 in v2.items():
+                        if k3 == "TrustedKeyGroups":
+                            if not compare_items(v3, existing_cache_behaviors_dict.get(k2, {}).get(k3, {}), "SET"):
+                                print(v3)
+                                print(existing_cache_behaviors_dict)
+                                return True
+                        elif k3 == "AllowedMethods":
+                            if not compare_items(v3, existing_cache_behaviors_dict.get(k2, {}).get(k3, {}), "SET"):
+                                print(v3)
+                                print(existing_cache_behaviors_dict)
+                                return True
+                            if not compare_items(v3["CachedMethods"], existing_cache_behaviors_dict.get(k2, {}).get(k3, {}).get("CachedMethods", {}), key="SET"):
+                                print(v3["CachedMethods"])
+                                print(distribution["DistributionConfig"][k][k2])
+                                return True
+                        elif (v3 or existing_cache_behaviors_dict[k2].get(k3)) and v3 != existing_cache_behaviors_dict[k2].get(k3):
+                            print(k3)
+                            print(v3)
+                            print(existing_cache_behaviors_dict[k2].get(k3))
+                            return True
+            else:
+                print(f"Different number of CacheBehaviors")
+                print(v)
+                print(distribution.get("DistributionConfig", {}).get("CacheBehaviors", {}))
+                return True
         elif k == "ViewerCertificate":
             for k2, v2 in v.items():
                 if v2 != distribution["DistributionConfig"].get(k, {}).get(k2):
