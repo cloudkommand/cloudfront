@@ -178,12 +178,21 @@ def lambda_handler(event, context):
             ]
         }
 
+        # Get all target_s3_bucket references
+        list_of_target_s3_buckets = []
+        if additional_behaviors:
+            for item in additional_behaviors:
+                if item.get("target_s3_bucket"):
+                    list_of_target_s3_buckets.append([item.get("path_pattern"), item.get("target_s3_bucket")])
+        if target_s3_bucket:
+            list_of_target_s3_buckets.append([None, target_s3_bucket])
+
         # If I've been run before, just run the functions, don't set any operations
         if event.get("pass_back_data"):
             print(f"pass_back_data found")
         elif op == "upsert":
             eh.add_op("get_acm_cert")
-            if target_s3_bucket:
+            if list_of_target_s3_buckets:
                 eh.add_op("get_s3_website_config")
             if distribution_id:
                 eh.add_op("get_distribution", distribution_id)
@@ -210,30 +219,48 @@ def lambda_handler(event, context):
         """
 
         get_acm_cert(aliases, region)
-        get_s3_website_config(target_s3_bucket)
+        get_s3_website_config(list_of_target_s3_buckets)
 
+        ###
+        # The S3 origin config bit for a website is only designed to work when the base level target_s3_bucket is a website. So if you have an S3 bucket website, you must set it as target_s3_bucket.
+        ###
         s3_origin_config = None
         custom_origin_config = None
-        if (op == "upsert") and target_s3_bucket:
-            #Warning about S3 Regions, they are funny. At some point should test in us-east-2 or something
-            if eh.state.get("s3_is_website"):
-                domain_name = f"{target_s3_bucket}.s3-website.{region}.amazonaws.com"
-            else:
-                domain_name = f"{target_s3_bucket}.s3.{region}.amazonaws.com"
-                if not oai_id:
-                    eh.add_log("WARN: No OAI", {"cdef": cdef}, is_error=True)
-                s3_origin_config = remove_none_attributes({
-                    "OriginAccessIdentity": f'origin-access-identity/cloudfront/{oai_id}' if oai_id else None
-                }) or None
-        elif target_s3_bucket:
-            domain_name = eh.props['domain_name']
-         
-        elif target_ec2_instance:
-            domain_name = f"{target_ec2_instance}.compute-1.amazonaws.com"
-        elif target_load_balancer:
-            domain_name = f"{target_load_balancer}.{region}.elb.amazonaws.com"
+        def format_targets(target, target_type, include_s3_origin_config=False):
+            if (op == "upsert") and target_type == "s3":
+                #Warning about S3 Regions, they are funny. At some point should test in us-east-2 or something
+                if eh.state.get("s3_is_website"):
+                    domain_name = f"{target}.s3-website.{region}.amazonaws.com"
+                else:
+                    domain_name = f"{target}.s3.{region}.amazonaws.com"
+                    if not oai_id:
+                        eh.add_log("WARN: No OAI", {"cdef": cdef}, is_error=True)
+                    s3_origin_config = remove_none_attributes({
+                        "OriginAccessIdentity": f'origin-access-identity/cloudfront/{oai_id}' if oai_id else None
+                    }) or None
+                    if include_s3_origin_config:
+                        return s3_origin_config, domain_name
+            elif target_type == "s3" and include_s3_origin_config:
+                domain_name = eh.props['domain_name']
+            
+            elif target_type == "ec2":
+                domain_name = f"{target}.compute-1.amazonaws.com"
+            elif target_type == "load_balancer":
+                domain_name = f"{target}.{region}.elb.amazonaws.com"
+            elif target_type == "domain":
+                domain_name = target
+            
+            return domain_name
+        
+        # Properly format the urls and set the s3_origin_config where necessary
+        if target_s3_bucket: 
+            s3_origin_config, domain_name = format_targets(target=target_s3_bucket, target_type="s3", include_s3_origin_config=True)
         elif target_domain_name:
-            domain_name = target_domain_name
+            domain_name = format_targets(target=target_domain_name, target_type="domain")
+        elif target_load_balancer:
+            domain_name = format_targets(target=target_load_balancer, target_type="load_balancer")
+        elif target_ec2_instance:
+            domain_name = format_targets(target=target_ec2_instance, target_type="ec2")
 
         if not s3_origin_config:
             custom_origin_config = {
@@ -259,7 +286,7 @@ def lambda_handler(event, context):
                 'Quantity': 1,
                 'Items': [
                     remove_none_attributes({
-                        'Id': domain_name,
+                        'Id': f"{domain_name}{origin_path}",
                         'DomainName': domain_name,
                         'OriginPath': origin_path,
                         'OriginShield': origin_shield,
