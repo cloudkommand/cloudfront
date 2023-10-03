@@ -36,43 +36,66 @@
                         "type": "array",
                         "description": "The alternate domain name(s) to associate with the distribution. For example, if you want hitting yourwebsite.com to reach your distribution, you would add yourwebsite.com to this list. You can also add subdomains, like www.yourwebsite.com, if you want those to reach your distribution as well."
                     },
-                    "target_s3_bucket": {
-                        "type": "object",
-                        "description": "The name of the S3 bucket to serve content from. This bucket must already exist. If you want to create a new bucket, use the s3 plugin.",
-                        "common": true
-                    },
                     "default_root_object": {
                         "type": "string",
                         "description": "If a path is not specified in the URL, the default root object will be returned. For example, if you specify index.html as the default root object, CloudFront returns that object from your distribution when a user enters the URL http://www.example.com/",
                         "default": "index.html",
                         "common": true
                     },
-                    "target_ec2_instance": {
-                        "type": "string",
-                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist. Using this ignores the target_url parameter."
-                    },
-                    "target_load_balancer": {
-                        "type": "string",
-                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist. Using this ignores the target_url parameter.",
-                        "common": true
-                    },
-                    "target_domain_name": {
-                        "type": "string",
-                        "description": "The domain name of the origin server to serve content from. Use this to connect to API Gateway or external servers.",
-                        "common": true
-                    },
-                    "origin_path": {
-                        "type": "string",
-                        "description": "A subdirectory path to add to the origin. For example, if you want to serve content from the /static/ directory in your S3 bucket, you would specify /static here.",
-                        "common": true
-                    },
-                    "origin_shield": {
-                        "type": "boolean",
-                        "description": "Whether you want to add origin shield to your distribution. It incurs additional costs. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html"
-                    },
-                    "custom_origin_headers": {
+                    "origins": {
                         "type": "object",
-                        "description": "A set of key-value pairs to add to the origin request headers. For example, if you want to add a header called x-custom-header, you would specify {\"x-custom-header\": \"value\"} here. This is useful for some niche use cases, see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/add-origin-custom-headers.html for more details."
+                        "description": "Information about the origins that this distribution gets content from to serve to viewers.",
+                        "properties": {
+                            "[a_memorable_name_for_your_origin]": {
+                                "type": "object",
+                                "description": "You must supply either a target domain name, S3 bucket, Load Balancer, EC2 instance.",
+                                "properties": {
+                                    "target_s3_bucket": {
+                                        "type": "object",
+                                        "description": "The name of the S3 bucket to serve content from. This bucket must already exist. If you want to create a new bucket, use the s3 plugin.",
+                                        "common": true
+                                    },
+                                    "target_ec2_instance": {
+                                        "type": "string",
+                                        "description": "The ID of the EC2 instance to serve content from. This instance must already exist. Using this ignores the target_url parameter."
+                                    },
+                                    "target_load_balancer": {
+                                        "type": "string",
+                                        "description": "The ID of the load balancer to serve content from. This load balancer must already exist. Using this ignores the target_url parameter.",
+                                        "common": true
+                                    },
+                                    "target_domain_name": {
+                                        "type": "string",
+                                        "description": "The domain name of the origin server to serve content from. Use this to connect to API Gateway or external servers.",
+                                        "common": true
+                                    },
+                                    "origin_path": {
+                                        "type": "string",
+                                        "description": "A subdirectory path to add to the origin. For example, if you want to serve content from the /static/ directory in your S3 bucket, you would specify /static here.",
+                                        "common": true
+                                    },
+                                    "origin_shield": {
+                                        "type": "boolean",
+                                        "description": "Whether you want to add origin shield to your distribution. It incurs additional costs. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/origin-shield.html"
+                                    },
+                                    "custom_origin_headers": {
+                                        "type": "object",
+                                        "description": "A set of key-value pairs to add to the origin request headers. For example, if you want to add a header called x-custom-header, you would specify {\"x-custom-header\": \"value\"} here. This is useful for some niche use cases, see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/add-origin-custom-headers.html for more details."
+                                    },
+                                    "allowed_ssl_protocols": {
+                                        "type": "array",
+                                        "description": "The SSL protocols that CloudFront can use when communicating with the origin. Allowed values in the array are TLSv1, TLSv1.1, TLSv1.2, and SSLv3",
+                                        "default": ["TLSv1", "TLSv1.1", "TLSv1.2"]
+                                    },
+                                    "force_https": {
+                                        "type": "boolean",
+                                        "description": "If true, Cloudfront will always use HTTPS to connect to the origin. Otherwise, it will match the protocol the user used.",
+                                        "default": false,
+                                        "common": true
+                                    }
+                                }
+                            }
+                        }
                     },
                     "oai_id": {
                         "type": "string",
@@ -82,17 +105,6 @@
                     "existing_id": {
                         "type": "string",
                         "description": "Set this if you want CloudKommand to use an existing distribution. This is useful if you want to use a distribution that was created outside of CloudKommand."
-                    },
-                    "force_https": {
-                        "type": "boolean",
-                        "description": "If true, Cloudfront will always use HTTPS to connect to the origin. Otherwise, it will match the protocol the user used.",
-                        "default": false,
-                        "common": true
-                    },
-                    "allowed_ssl_protocols": {
-                        "type": "array",
-                        "description": "The SSL protocols that CloudFront can use when communicating with the origin. Allowed values in the array are TLSv1, TLSv1.1, TLSv1.2, and SSLv3",
-                        "default": ["TLSv1", "TLSv1.1", "TLSv1.2"]
                     },
                     "price_class": {
                         "type": "string",
@@ -123,78 +135,31 @@
                         "description": "The object prefix to add to the log files in s3. Should end in a slash",
                         "default": ""
                     },
-                    "key_group_ids": {
-                        "type": "array",
-                        "description": "A list of key groups that CloudFront can use to validate signed URLs or signed cookies"
-                    },
-                    "allowed_methods": {
-                        "type": "array",
-                        "description": "The allowed methods on this cloudfront distribution",
-                        "enum": [
-                            ["HEAD", "GET", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"], 
-                            ["HEAD", "GET", "OPTIONS"],
-                            ["HEAD", "GET"]
-                        ]
-                    },
-                    "cached_methods": {
-                        "type": "array",
-                        "description": "The cached methods on this cloudfront distribution",
-                        "enum": [
-                            ["HEAD", "GET", "OPTIONS"],
-                            ["HEAD", "GET"]
-                        ]
-                    },
-                    "cache_policy_id": {
-                        "type": "string",
-                        "description": "The ID of the cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html",
-                        "default": "658327ea-f89d-4fab-a63d-7e88639e58f6"
-                    },
-                    "cache_policy_name": {
-                        "type": "string",
-                        "description": "The name of the managed cache policy to use for this cloudfront distribution. Pass this or cache_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html",
-                        "enum": ["CachingOptimized", "CachingOptimizedForUncompressedObjects", "CachingDisabled", "Elemental-MediaPackage", "Amplify"]
-                    },
-                    "origin_request_policy_id": {
-                        "type": "string",
-                        "description": "The ID of the origin request policy to use for this cloudfront distribution. Pass this or origin_request_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html",
-                        "enum": ["216adef6-5c7f-47e4-b989-5492eafa07d3", "33f36d7e-f396-46d9-90e0-52428a34d9dc", "b689b0a8-53d0-40ab-baf2-68738e2966ac", "59781a5b-3903-41f3-afcb-af62929ccde1", "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf", "775133bc-15f2-49f9-abea-afb2e0bf67d2", "acba4595-bd28-49b8-b9fe-13317c0390fa"]
-                    },
-                    "origin_request_policy_name": {
-                        "type": "string",
-                        "description": "The name of the managed origin request policy to use for this cloudfront distribution. Pass this or origin_request_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html",
-                        "enum": ["AllViewer", "AllViewerAndCloudFrontHeaders-2022-06", "AllViewerExceptHostHeader", "CORS-CustomOrigin", "CORS-S3Origin", "Elemental-MediaTailor-PersonalizedManifests", "UserAgentRefererHeaders"]
-                    },
-                    "response_headers_policy_id": {
-                        "type": "string",
-                        "description": "The ID of the response headers policy to use for this cloudfront distribution. Pass this or response_headers_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html",
-                        "default": "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
-                    },
-                    "response_headers_policy_name": {
-                        "type": "string",
-                        "description": "The name of the managed response headers policy to use for this cloudfront distribution. Pass this or response_headers_policy_name, but not both. See https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-response-headers-policies.html",
-                        "enum": ["CORS-and-SecurityHeadersPolicy", "CORS-With-Preflight", "CORS-with-preflight-and-SecurityHeadersPolicy", "SecurityHeadersPolicy", "SimpleCORS"]
-                    },
                     "tags": {
                         "type": "object",
                         "description": "A set of key-value pairs to attach to this Cloudfront distribution as tags",
                         "common": true
                     },
-                    "additional_behaviors": {
+                    "cache_behaviors": {
                         "type": "array",
-                        "description": "Additional cache behaviors for this distribution",
+                        "description": "Cache behaviors for this distribution. There must be at least one.",
                         "items": {
                             "type": "object",
-                            "required": ["path_pattern", "target"],
+                            "required": ["path_pattern", "target_origin"],
                             "properties": {
+                                "default": {
+                                    "type": "boolean",
+                                    "description": "This designates the given cache behavior as the default. If none of the cache behaviors have this value, the first cache behavior will be used as the default.",
+                                    "common": true
+                                },
                                 "path_pattern": {
                                     "type": "string",
                                     "description": "The pattern (for example, images/*.jpg) that specifies which requests to apply the behavior to.",
                                     "common": true
                                 },
-                                "target": {
+                                "target_origin": {
                                     "type": "string",
-                                    "description": "Specifies which of the above declared targets CloudFront will route Requests to when they match this cache behavior.",
-                                    "enum": ["domain", "s3", "ec2", "load_balancer"],
+                                    "description": "Specifies the origin (using the key you set in the \"origins\" object) that CloudFront will route Requests to when they match this cache behavior.",
                                     "common": true
                                 },
                                 "key_group_ids": {

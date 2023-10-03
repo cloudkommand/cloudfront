@@ -85,42 +85,21 @@ def lambda_handler(event, context):
             return eh.finish()
             
         default_root_object = cdef.get("default_root_object", "index.html")
-        target_s3_bucket = cdef.get("target_s3_bucket")
-        target_ec2_instance = cdef.get("target_ec2_instance")
-        target_load_balancer = cdef.get("target_load_balancer")
-        target_domain_name = cdef.get("target_domain_name")
-        origin_path = cdef.get("origin_path") or ""
-        if origin_path.endswith("/"):
-            origin_path = origin_path[:-1]
-
-        custom_origin_headers = cdef.get("custom_origin_headers") or {}
-        custom_headers = remove_none_attributes({
-            "Quantity": len(custom_origin_headers.keys()), 
-            "Items": [{"HeaderName": k, "HeaderValue": v} for k,v in custom_origin_headers.items()] or None
-        })
-        print(f"custom_headers = {custom_headers}")
 
         oai_id = cdef.get("oai_id")
-        origin_shield = remove_none_attributes({
-            "Enabled": bool(cdef.get("origin_shield")),
-            "OriginShieldRegion": region if cdef.get("origin_shield") else None
-        })
 
         log_bucket = f'{cdef.get("logs_s3_bucket")}.s3.amazonaws.com' if cdef.get("logs_s3_bucket") else ""
         logs_include_cookies = cdef.get("logs_include_cookies") or False
         logs_prefix = cdef.get("logs_s3_prefix") or ""
 
-        key_group_ids = cdef.get("key_group_ids") or []
         price_class = fix_price_class(cdef.get("price_class"))
         waf_acl_value = cdef.get("waf_web_acl_arn") or cdef.get("web_acl_id") or ""
 
-        cached_methods = cdef.get("cached_methods") or ["HEAD", "GET"]
-        allowed_methods = cdef.get("allowed_methods") or ["HEAD", "GET"]
-        allowed_ssl_protocols = cdef.get("allowed_ssl_protocols") or ["TLSv1", "TLSv1.1", "TLSv1.2"]
-
         enable_ipv6 = cdef.get("enable_ipv6", True)
 
-        additional_behaviors = cdef.get("additional_behaviors") or []
+        origins = cdef.get("origins") or {} # {"YOUR_ID_FOR_ORIGIN": {"origin_path": ... , }}
+
+        cache_behaviors = cdef.get("cache_behaviors") or []
 
         def set_cache_policy_id(eh, def_item):
             try:
@@ -131,9 +110,7 @@ def lambda_handler(event, context):
                 eh.add_log("Invalid Cache Policy Name", {"value": str(e)})
                 eh.perm_error(str(e), 0)
                 return cache_policy_id
-            
-        cache_policy_id = set_cache_policy_id(eh, cdef)
-        
+                    
         def set_origin_request_policy_id(eh, def_item):
             try:
                 origin_request_policy_id = def_item.get("origin_request_policy_id") or origin_request_policy_name_to_id(def_item.get("origin_request_policy_name")) or None
@@ -144,8 +121,6 @@ def lambda_handler(event, context):
                 eh.perm_error(str(e), 0)
                 return origin_request_policy_id
         
-        origin_request_policy_id = set_origin_request_policy_id(eh, cdef)
-
         def set_response_headers_policy_id(eh, def_item):
             try:
                 response_headers_policy_id = def_item.get("response_headers_policy_id") or response_headers_policy_name_to_id(def_item.get("response_headers_policy_name")) or "eaab4381-ed33-4a86-88ca-d9558dc6cd63"
@@ -155,9 +130,7 @@ def lambda_handler(event, context):
                 eh.add_log("Invalid Response Header Policy Name", {"value": str(e)})
                 eh.perm_error(str(e), 0)
                 return response_headers_policy_id
-        
-        response_headers_policy_id = set_response_headers_policy_id(eh, cdef)
-
+    
         tags = cdef.get("tags") or {}
 
         error_responses = cdef.get("error_responses") or {
@@ -180,12 +153,12 @@ def lambda_handler(event, context):
 
         # Get all target_s3_bucket references
         list_of_target_s3_buckets = []
-        if additional_behaviors:
-            for item in additional_behaviors:
-                if item.get("target_s3_bucket"):
-                    list_of_target_s3_buckets.append([item.get("path_pattern"), item.get("target_s3_bucket")])
+        if origins:
+            for item in origins:
+                if origins[item].get("target_s3_bucket"):
+                    list_of_target_s3_buckets.append([item, item.get("target_s3_bucket")])
         if target_s3_bucket:
-            list_of_target_s3_buckets.append([None, target_s3_bucket])
+            list_of_target_s3_buckets.append(["default", target_s3_bucket])
 
         # If I've been run before, just run the functions, don't set any operations
         if event.get("pass_back_data"):
@@ -193,7 +166,7 @@ def lambda_handler(event, context):
         elif op == "upsert":
             eh.add_op("get_acm_cert")
             if list_of_target_s3_buckets:
-                eh.add_op("get_s3_website_config")
+                eh.add_op("get_s3_website_config", list_of_target_s3_buckets)
             if distribution_id:
                 eh.add_op("get_distribution", distribution_id)
             else:
@@ -219,17 +192,16 @@ def lambda_handler(event, context):
         """
 
         get_acm_cert(aliases, region)
-        get_s3_website_config(list_of_target_s3_buckets)
+        get_s3_website_config() # TODO: edit this to work with the origin keys
 
         ###
         # The S3 origin config bit for a website is only designed to work when the base level target_s3_bucket is a website. So if you have an S3 bucket website, you must set it as target_s3_bucket.
         ###
-        s3_origin_config = None
-        custom_origin_config = None
-        def format_targets(target, target_type, include_s3_origin_config=False):
+        
+        def format_targets(target, target_type, origin_item_key=None, include_s3_origin_config=False):
             if (op == "upsert") and target_type == "s3":
                 #Warning about S3 Regions, they are funny. At some point should test in us-east-2 or something
-                if eh.state.get("s3_is_website"):
+                if eh.state.get("s3_is_website").get(origin_item_key):
                     domain_name = f"{target}.s3-website.{region}.amazonaws.com"
                 else:
                     domain_name = f"{target}.s3.{region}.amazonaws.com"
@@ -252,54 +224,176 @@ def lambda_handler(event, context):
             
             return domain_name
         
-        # Properly format the urls and set the s3_origin_config where necessary
-        if target_s3_bucket: 
-            s3_origin_config, domain_name = format_targets(target=target_s3_bucket, target_type="s3", include_s3_origin_config=True)
-        elif target_domain_name:
-            domain_name = format_targets(target=target_domain_name, target_type="domain")
-        elif target_load_balancer:
-            domain_name = format_targets(target=target_load_balancer, target_type="load_balancer")
-        elif target_ec2_instance:
-            domain_name = format_targets(target=target_ec2_instance, target_type="ec2")
+        # Format origins now that S3 related config information has been retrieved
+        formatted_origins = {}
+        if origins:
+            for origin_key in origins:
+                origin_item = origins[origin_key]
+                # Get a properly formatted domain name
+                if origin_item.get("target_s3_bucket"): 
+                    item_s3_origin_config, item_domain_name = format_targets(target=origin_item.get("target_s3_bucket"), target_type="s3", include_s3_origin_config=True)
+                elif origin_item.get("target_domain_name"):
+                    item_domain_name = format_targets(target=origin_item.get("target_domain_name"), target_type="domain")
+                elif origin_item.get("target_load_balancer"):
+                    item_domain_name = format_targets(target=origin_item.get("target_load_balancer"), target_type="load_balancer")
+                elif origin_item.get("target_ec2_instance"):
+                    item_domain_name = format_targets(target=origin_item.get("target_ec2_instance"), target_type="ec2")
+                item_origin_path = origin_item.get("origin_path") or ""
+                item_origin_shield = remove_none_attributes({
+                    "Enabled": bool(origin_item.get("origin_shield")),
+                    "OriginShieldRegion": region if origin_item.get("origin_shield") else None
+                })
+                item_custom_origin_headers = origin_item.get("custom_origin_headers") or {}
+                item_custom_headers = remove_none_attributes({
+                    "Quantity": len(item_custom_origin_headers.keys()), 
+                    "Items": [{"HeaderName": k, "HeaderValue": v} for k,v in item_custom_origin_headers.items()] or None
+                })
+                print(f"item_custom_headers = {item_custom_headers}")
+                item_allowed_ssl_protocols = origin_item.get("allowed_ssl_protocols") or ["TLSv1", "TLSv1.1", "TLSv1.2"]
 
-        if not s3_origin_config:
-            custom_origin_config = {
-                "HTTPPort": 80,
-                "HTTPSPort": 443,
-                "OriginProtocolPolicy": "https-only" if cdef.get("force_https") else "match-viewer",
-                "OriginSslProtocols": {
-                    "Quantity": len(allowed_ssl_protocols),
-                    "Items": allowed_ssl_protocols
-                },
-                "OriginReadTimeout": 30,
-                "OriginKeepaliveTimeout": 5,
-            }
+                if not item_s3_origin_config:
+                    item_custom_origin_config = {
+                        "HTTPPort": 80,
+                        "HTTPSPort": 443,
+                        "OriginProtocolPolicy": "https-only" if origin_item.get("force_https") else "match-viewer",
+                        "OriginSslProtocols": {
+                            "Quantity": len(item_allowed_ssl_protocols),
+                            "Items": item_allowed_ssl_protocols
+                        },
+                        "OriginReadTimeout": 30,
+                        "OriginKeepaliveTimeout": 5,
+                    }
 
-        desired_config = remove_none_attributes({
-            'CallerReference': eh.state["reference_id"],
-            'Aliases': {
-                'Quantity': len(aliases),
-                'Items': aliases
-            },
-            'DefaultRootObject': default_root_object or "",
-            'Origins': {
-                'Quantity': 1,
-                'Items': [
-                    remove_none_attributes({
-                        'Id': f"{domain_name}{origin_path}",
-                        'DomainName': domain_name,
-                        'OriginPath': origin_path,
-                        'OriginShield': origin_shield,
-                        'CustomHeaders': custom_headers,
-                        'S3OriginConfig': s3_origin_config,
-                        'CustomOriginConfig': custom_origin_config,
-                        'ConnectionAttempts': 3,
-                        'ConnectionTimeout': 10
+                formatted_origin = remove_none_attributes({
+                    'Id': f"{item_domain_name}{item_origin_path}",
+                    'DomainName': item_domain_name,
+                    'OriginPath': item_origin_path,
+                    'OriginShield': item_origin_shield,
+                    'CustomHeaders': item_custom_headers,
+                    'S3OriginConfig': item_s3_origin_config,
+                    'CustomOriginConfig': item_custom_origin_config,
+                    'ConnectionAttempts': 3,
+                    'ConnectionTimeout': 10
+                })
+                formatted_origins[origin_key] = formatted_origin
+        else: # DEPRECATED: this path will no longer be supported in the future to minimize confusion in usage.
+
+            # Origin-related values
+            target_s3_bucket = cdef.get("target_s3_bucket")
+            target_ec2_instance = cdef.get("target_ec2_instance")
+            target_load_balancer = cdef.get("target_load_balancer")
+            target_domain_name = cdef.get("target_domain_name")
+            origin_path = cdef.get("origin_path") or ""
+            if origin_path.endswith("/"):
+                origin_path = origin_path[:-1]
+            custom_origin_headers = cdef.get("custom_origin_headers") or {}
+            custom_headers = remove_none_attributes({
+                "Quantity": len(custom_origin_headers.keys()), 
+                "Items": [{"HeaderName": k, "HeaderValue": v} for k,v in custom_origin_headers.items()] or None
+            })
+            print(f"custom_headers = {custom_headers}")
+            origin_shield = remove_none_attributes({
+                "Enabled": bool(cdef.get("origin_shield")),
+                "OriginShieldRegion": region if cdef.get("origin_shield") else None
+            })
+            allowed_ssl_protocols = cdef.get("allowed_ssl_protocols") or ["TLSv1", "TLSv1.1", "TLSv1.2"]
+
+            origin_key = "default"
+            # Properly format the urls and set the s3_origin_config where necessary
+            if target_s3_bucket: 
+                s3_origin_config, domain_name = format_targets(target=target_s3_bucket, target_type="s3", include_s3_origin_config=True)
+            elif target_domain_name:
+                domain_name = format_targets(target=target_domain_name, target_type="domain")
+            elif target_load_balancer:
+                domain_name = format_targets(target=target_load_balancer, target_type="load_balancer")
+            elif target_ec2_instance:
+                domain_name = format_targets(target=target_ec2_instance, target_type="ec2")
+            if not s3_origin_config:
+                custom_origin_config = {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "https-only" if cdef.get("force_https") else "match-viewer",
+                    "OriginSslProtocols": {
+                        "Quantity": len(allowed_ssl_protocols),
+                        "Items": allowed_ssl_protocols
+                    },
+                    "OriginReadTimeout": 30,
+                    "OriginKeepaliveTimeout": 5,
+                }
+            formatted_origin = remove_none_attributes({
+                'Id': f"{domain_name}{origin_path}",
+                'DomainName': domain_name,
+                'OriginPath': origin_path,
+                'OriginShield': origin_shield,
+                'CustomHeaders': custom_headers,
+                'S3OriginConfig': s3_origin_config,
+                'CustomOriginConfig': custom_origin_config,
+                'ConnectionAttempts': 3,
+                'ConnectionTimeout': 10
+            })
+            formatted_origins[origin_key] = formatted_origin
+        
+        # Format cache behaviors and select the default
+        default_cache_behavior = {}
+        formatted_cache_behaviors = []
+        if cache_behaviors:
+            default_ix = 0
+            for ix, item in enumerate(cache_behaviors):
+                if item.get("default"):
+                    default_ix = ix
+                    break
+            for ix, behavior in enumerate(cache_behaviors):
+                formatted_cache_item = remove_none_attributes({
+                    'TargetOriginId': formatted_origins.get(behavior.get("target_origin")) or "",
+                    'TrustedKeyGroups': remove_none_attributes({
+                        'Enabled': bool(behavior.get("key_group_ids", [])),
+                        'Quantity': len(behavior.get("key_group_ids", [])),
+                        'Items': behavior.get("key_group_ids", []) or None
                     }),
-                ]
-            },
-            'DefaultCacheBehavior': remove_none_attributes({
-                'TargetOriginId': domain_name,
+                    'TrustedSigners': {
+                        'Enabled': False,
+                        'Quantity': 0
+                    },
+                    'ViewerProtocolPolicy': 'redirect-to-https' if behavior.get("force_https") else "allow-all",
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    'AllowedMethods': {
+                        'Quantity': len(behavior.get("allowed_methods", ["HEAD", "GET"])),
+                        'Items': behavior.get("allowed_methods", ["HEAD", "GET"]),
+                        'CachedMethods': {
+                            'Quantity': len(behavior.get("cached_methods", ["HEAD", "GET"])),
+                            'Items': behavior.get("cached_methods", ["HEAD", "GET"])
+                        }
+                    },
+                    "ResponseHeadersPolicyId": set_response_headers_policy_id(eh, behavior),
+                    "CachePolicyId": set_cache_policy_id(eh, behavior),
+                    "OriginRequestPolicyId": set_origin_request_policy_id(eh, behavior),
+                    "Compress": False if set_cache_policy_id(eh, behavior) in [
+                            "4135ea2d-6df8-44a3-9df3-4b5a84be39ad", "b2884449-e4de-46a7-ac36-70bc7f1ddd6d"
+                        ] else True,
+                    "FieldLevelEncryptionId": "",
+                    "SmoothStreaming": False
+                })
+                if default_ix == ix:
+                    default_cache_behavior = formatted_cache_item
+                else:
+                    formatted_cache_item['PathPattern'] = behavior.get("path_pattern")
+                    formatted_cache_behaviors.append(formatted_cache_item)
+        else: # DEPRECATED: this path will no longer be supported in the future to minimize confusion in usage.
+            # The deprecated path only supports the default and nothing else
+            # In the future, this else statement will be converted to provide a default cache behavior when nothing is set.
+
+            key_group_ids = cdef.get("key_group_ids") or []
+            cached_methods = cdef.get("cached_methods") or ["HEAD", "GET"]
+            allowed_methods = cdef.get("allowed_methods") or ["HEAD", "GET"]
+            cache_policy_id = set_cache_policy_id(eh, cdef)
+            origin_request_policy_id = set_origin_request_policy_id(eh, cdef)
+            response_headers_policy_id = set_response_headers_policy_id(eh, cdef)
+
+            formatted_cache_behaviors = []
+            default_cache_behavior = remove_none_attributes({
+                'TargetOriginId': formatted_origins.get("default").get("Id"),
                 # 'ForwardedValues': {
                 #     "Cookies": {
                 #         "Forward": "none"
@@ -341,50 +435,25 @@ def lambda_handler(event, context):
                     ] else True,
                 "FieldLevelEncryptionId": "",
                 "SmoothStreaming": False
-            }),
+            })
+
+        converted_formatted_origins = [formatted_origin[origin_key] for origin_key in formatted_origins]
+
+        desired_config = remove_none_attributes({
+            'CallerReference': eh.state["reference_id"],
+            'Aliases': {
+                'Quantity': len(aliases),
+                'Items': aliases
+            },
+            'DefaultRootObject': default_root_object or "",
+            'Origins': {
+                'Quantity': len(converted_formatted_origins),
+                'Items': converted_formatted_origins
+            },
+            'DefaultCacheBehavior': default_cache_behavior,
             'CacheBehaviors': remove_none_attributes({
-                'Quantity': len(additional_behaviors) or 0,
-                'Items': [{
-                    'PathPattern': behavior.get("path_pattern"),
-                    'TargetOriginId': target_domain_name
-                        if behavior.get("target") == "domain" 
-                            else target_s3_bucket 
-                            if behavior.get("target") == "s3"
-                                else target_load_balancer
-                                if behavior.get("target") == "load_balancer"
-                                    else target_ec2_instance
-                                    if behavior.get("target") == "ec2"
-                                        else None,
-                    'TrustedKeyGroups': remove_none_attributes({
-                        'Enabled': bool(behavior.get("key_group_ids", [])),
-                        'Quantity': len(behavior.get("key_group_ids", [])),
-                        'Items': behavior.get("key_group_ids", []) or None
-                    }),
-                    'TrustedSigners': {
-                        'Enabled': False,
-                        'Quantity': 0
-                    },
-                    'ViewerProtocolPolicy': 'redirect-to-https' if behavior.get("force_https") else "allow-all",
-                    "LambdaFunctionAssociations": {
-                        "Quantity": 0
-                    },
-                    'AllowedMethods': {
-                        'Quantity': len(behavior.get("allowed_methods", ["HEAD", "GET"])),
-                        'Items': behavior.get("allowed_methods", ["HEAD", "GET"]),
-                        'CachedMethods': {
-                            'Quantity': len(behavior.get("cached_methods", ["HEAD", "GET"])),
-                            'Items': behavior.get("cached_methods", ["HEAD", "GET"])
-                        }
-                    },
-                    "ResponseHeadersPolicyId": set_response_headers_policy_id(eh, behavior),
-                    "CachePolicyId": set_cache_policy_id(eh, behavior),
-                    "OriginRequestPolicyId": set_origin_request_policy_id(eh, behavior),
-                    "Compress": False if set_cache_policy_id(eh, behavior) in [
-                            "4135ea2d-6df8-44a3-9df3-4b5a84be39ad", "b2884449-e4de-46a7-ac36-70bc7f1ddd6d"
-                        ] else True,
-                    "FieldLevelEncryptionId": "",
-                    "SmoothStreaming": False
-                } for behavior in additional_behaviors] if additional_behaviors else None
+                'Quantity': len(formatted_cache_behaviors) or 0,
+                'Items': formatted_cache_behaviors if formatted_cache_behaviors else None
             }),
             'CustomErrorResponses': error_responses,
             'Comment': f'{aliases[0]}',
@@ -498,24 +567,31 @@ def get_acm_cert(domain_names, region):
 
 
 @ext(handler=eh, op="get_s3_website_config")
-def get_s3_website_config(bucket_name):
+def get_s3_website_config():
     """
     Get the S3 website configuration for a bucket
     """
-    try:
-        s3 = boto3.client('s3')
-        config = s3.get_bucket_website(Bucket=bucket_name)
-        eh.add_state({"s3_is_website": True})
-        eh.add_state({"s3_root_document": config.get("IndexDocument", {}).get("Suffix")})
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuchWebsiteConfiguration':
-            eh.add_state({"s3_is_website": False})
-            config = None
-        else:
-            handle_common_errors(e, eh, "Failed to get S3 Website Config", 4)
-            return 0
+    bucket_name_lists = eh.ops.get("get_s3_website_config")
 
-    eh.add_log("Got S3 Website Config", {"config": config})
+    s3_is_website = {}
+    for item in bucket_name_lists:
+        try:
+            s3 = boto3.client('s3')
+            config = s3.get_bucket_website(Bucket=item[1])
+            s3_is_website[item[0]] = True
+            eh.add_log("Got S3 Website Config", {"config": config})
+            # eh.add_state({"s3_is_website": True})
+            # eh.add_state({"s3_root_document": config.get("IndexDocument", {}).get("Suffix")})
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchWebsiteConfiguration':
+                # eh.add_state({"s3_is_website": False})
+                s3_is_website[item[0]] = False
+                config = None
+            else:
+                handle_common_errors(e, eh, "Failed to get S3 Website Config", 4)
+                # return 0
+    eh.add_state({"s3_is_website": s3_is_website})
+    return 0
 
 @ext(handler=eh, op="get_distribution")
 def get_distribution(desired_config, op):
