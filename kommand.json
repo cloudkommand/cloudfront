@@ -135,6 +135,12 @@
                         "description": "The object prefix to add to the log files in s3. Should end in a slash",
                         "default": ""
                     },
+                    "enable_ipv6": {
+                        "type": "boolean",
+                        "description": "If you want CloudFront to respond to IPv6 DNS requests with an IPv6 address for your distribution, specify true",
+                        "default": true,
+                        "enum": [true, false]
+                    },
                     "tags": {
                         "type": "object",
                         "description": "A set of key-value pairs to attach to this Cloudfront distribution as tags",
