@@ -24,7 +24,9 @@
                         "cloudfront:TagResource",
                         "cloudfront:UntagResource",
                         "acm:ListCertificates",
-                        "acm:DescribeCertificate"
+                        "acm:DescribeCertificate",
+                        "s3:GetBucketAcl",
+                        "s3:PutBucketAcl"
                     ],
                     "Resource": "*"
                 }]
