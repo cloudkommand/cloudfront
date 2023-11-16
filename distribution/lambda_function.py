@@ -351,7 +351,7 @@ def lambda_handler(event, context):
                     break
             for ix, behavior in enumerate(cache_behaviors):
                 formatted_cache_item = remove_none_attributes({
-                    'TargetOriginId': formatted_origins.get(behavior.get("target_origin")) or "",
+                    'TargetOriginId': formatted_origins.get(behavior.get("target_origin"), {}).get("Id") or "",
                     'TrustedKeyGroups': remove_none_attributes({
                         'Enabled': bool(behavior.get("key_group_ids", [])),
                         'Quantity': len(behavior.get("key_group_ids", [])),
