@@ -268,8 +268,8 @@ def lambda_handler(event, context):
                     }
 
                 formatted_origin = remove_none_attributes({
-                    'Id': f"{item_domain_name.split(':/')[-1]}{item_origin_path}",
-                    'DomainName': item_domain_name,
+                    'Id': f"{item_domain_name.split('://')[-1]}{item_origin_path}",
+                    'DomainName': item_domain_name.split('://')[-1],
                     'OriginPath': item_origin_path,
                     'OriginShield': item_origin_shield,
                     'CustomHeaders': item_custom_headers,
@@ -328,8 +328,8 @@ def lambda_handler(event, context):
                     "OriginKeepaliveTimeout": 5,
                 }
             formatted_origin = remove_none_attributes({
-                'Id': f"{domain_name.split(':/')[-1]}{origin_path}",
-                'DomainName': domain_name,
+                'Id': f"{domain_name.split('://')[-1]}{origin_path}",
+                'DomainName': domain_name.split('://')[-1],
                 'OriginPath': origin_path,
                 'OriginShield': origin_shield,
                 'CustomHeaders': custom_headers,
