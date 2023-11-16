@@ -268,7 +268,7 @@ def lambda_handler(event, context):
                     }
 
                 formatted_origin = remove_none_attributes({
-                    'Id': f"{item_domain_name}{item_origin_path}",
+                    'Id': f"{item_domain_name.split(':/')[-1]}{item_origin_path}",
                     'DomainName': item_domain_name,
                     'OriginPath': item_origin_path,
                     'OriginShield': item_origin_shield,
