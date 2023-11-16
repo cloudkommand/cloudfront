@@ -157,7 +157,7 @@ def lambda_handler(event, context):
             for item in origins:
                 if origins[item].get("target_s3_bucket"):
                     list_of_target_s3_buckets.append([item, origins[item].get("target_s3_bucket")])
-        if target_s3_bucket:
+        if cdef.get("target_s3_bucket"):
             list_of_target_s3_buckets.append(["default", target_s3_bucket])
 
         # If I've been run before, just run the functions, don't set any operations
