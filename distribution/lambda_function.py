@@ -228,6 +228,9 @@ def lambda_handler(event, context):
         formatted_origins = {}
         if origins:
             for origin_key in origins:
+                item_s3_origin_config = None
+                item_custom_origin_config = None
+
                 origin_item = origins[origin_key]
                 # Get a properly formatted domain name
                 if origin_item.get("target_s3_bucket"): 
@@ -277,6 +280,9 @@ def lambda_handler(event, context):
                 })
                 formatted_origins[origin_key] = formatted_origin
         else: # DEPRECATED: this path will no longer be supported in the future to minimize confusion in usage.
+
+            s3_origin_config = None
+            custom_origin_config = None
 
             # Origin-related values
             target_s3_bucket = cdef.get("target_s3_bucket")
