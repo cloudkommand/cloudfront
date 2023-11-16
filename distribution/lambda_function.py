@@ -328,7 +328,7 @@ def lambda_handler(event, context):
                     "OriginKeepaliveTimeout": 5,
                 }
             formatted_origin = remove_none_attributes({
-                'Id': f"{domain_name}{origin_path}",
+                'Id': f"{domain_name.split(':/')[-1]}{origin_path}",
                 'DomainName': domain_name,
                 'OriginPath': origin_path,
                 'OriginShield': origin_shield,
