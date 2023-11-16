@@ -279,6 +279,9 @@ def lambda_handler(event, context):
                     'ConnectionTimeout': 10
                 })
                 formatted_origins[origin_key] = formatted_origin
+                print("in origins")
+                print(origin_key)
+                print(formatted_origin)
         else: # DEPRECATED: this path will no longer be supported in the future to minimize confusion in usage.
 
             s3_origin_config = None
@@ -442,6 +445,8 @@ def lambda_handler(event, context):
                 "FieldLevelEncryptionId": "",
                 "SmoothStreaming": False
             })
+
+        print(formatted_origins)
 
         converted_formatted_origins = [formatted_origin[origin_key] for origin_key in formatted_origins]
 
