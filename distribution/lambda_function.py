@@ -267,10 +267,19 @@ def lambda_handler(event, context):
                         "OriginKeepaliveTimeout": 5,
                     }
 
+                stage = ""
+                # Make sure the domain name doesn't end with a slash
+                if item_domain_name.endswith("/"):
+                    item_domain_name = item_domain_name[:-1]
+                # If you have an API Gateway endpoint with a stage as part of the path, remove the stage path portion and attach that to the origin path
+                # Also remove the https:// while you're at it
+                if len( item_domain_name.split('://')[-1].split("/") ) > 1:
+                    item_domain_name, stage = item_domain_name.split('://')[-1].split("/")
+                    stage = f"/{stage}"
                 formatted_origin = remove_none_attributes({
-                    'Id': f"{item_domain_name.split('://')[-1]}{item_origin_path}",
-                    'DomainName': item_domain_name.split('://')[-1],
-                    'OriginPath': item_origin_path,
+                    'Id': f"{item_domain_name}{stage}{item_origin_path}",
+                    'DomainName': item_domain_name,
+                    'OriginPath': f"{stage}{item_origin_path}",
                     'OriginShield': item_origin_shield,
                     'CustomHeaders': item_custom_headers,
                     'S3OriginConfig': item_s3_origin_config,
